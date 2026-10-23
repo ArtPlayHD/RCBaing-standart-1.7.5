@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Рукопись не горит! — Книги и Админ</title>
+  <style>
+    :root {
+      --bg: #0f0f17;
+      --bg-card: #1a1a2e;
+      --accent: #00d2d3;
+      --accent-red: #e94560;
+      --text: #e0e0e0;
+      --muted: #888;
+      --border: #2a2a3e;
+      --radius: 12px;
+      --shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+
+    /* ─── Шапка ─── */
+    header {
+      padding: 1.5rem 2rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      background: rgba(15, 15, 23, 0.95);
+      backdrop-filter: blur(10px);
+      z-index: 100;
+    }
+    h1 {
+      margin: 0;
+      font-size: 1.6rem;
+      letter-spacing: 1px;
+      background: linear-gradient(135deg, var(--accent), #35e3e5);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    /* ─── Навигация (карточки) ─── */
+    .quick-nav-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 1.4rem;
+      max-width: 960px;
+      margin: 2.4rem auto;
+      padding: 0 1.2rem;
+    }
+    .nav-card {
+      display: block;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.8rem;
+      text-align: center;
+      color: var(--text);
+      text-decoration: none;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+    }
+    .nav-card:hover {
+      transform: translateY(-4px);
+      border-color: var(--accent);
+      box-shadow: 0 8px 24px rgba(0, 210, 211, 0.15);
+    }
+    .nav-card h3 {
+      margin: 0 0 0.5rem;
+      font-size: 1.15rem;
+    }
+    .nav-card p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.4;
+    }
+
+    /* ─── Поиск ─── */
+    .search-container {
+      max-width: 600px;
+      margin: 0 auto 2.8rem;
+      padding: 0 1.2rem;
+    }
+    .search-box {
+      display: flex;
+      gap: 0.6rem;
+    }
+    #searchInput {
+      flex: 1;
+      padding: 0.85rem 1.2rem;
+      background: #16213e;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 0.95rem;
+      outline: none;
+    }
+    #searchInput:focus {
+      border-color: var(--accent);
+    }
+    .btn-primary {
+      padding: 0.85rem 1.4rem;
+      background: var(--accent);
+      color: #000;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .btn-primary:hover { background: #00b8b9; }
+    .result-message {
+      margin-top: 0.7rem;
+      text-align: center;
+      color: var(--muted);
+    }
+
+    /* ─── Кнопка «Я АДМИН» ─── */
+    .admin-trigger-wrapper {
+      text-align: center;
+      margin: 2rem 0;
+    }
+    .btn-admin {
+      padding: 0.75rem 1.6rem;
+      background: transparent;
+      border: 2px solid var(--accent-red);
+      color: var(--accent-red);
+      border-radius: 50px;
+      font-weight: 700;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.3s;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .btn-admin:hover {
+      background: var(--accent-red);
+      color: white;
+      box-shadow: 0 0 16px rgba(233, 69, 96, 0.4);
+    }
+
+    /* ─── Экран входа ─── */
+    #loginScreen {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.8);
+      backdrop-filter: blur(6px);
+      display: none; /* скрыто по умолчанию */
+      justify-content: center;
+      align-items: center;
+      z-index: 200;
+      padding: 1rem;
+    }
+    .login-box {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 2rem;
+      width: 100%;
+      max-width: 360px;
+      text-align: center;
+    }
+    .login-hint {
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-top: 1rem;
+    }
+
+    /* ─── Админ-панель ─── */
+    #adminPanel {
+      display: none;
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 0 1.2rem 3rem;
+    }
+    .admin-section {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.8rem;
+      margin-bottom: 2rem;
+    }
+    .admin-section h3 {
+      margin-top: 0;
+      color: var(--accent);
+    }
+    .form-group {
+      margin-bottom: 1.2rem;
+    }
+    .form-group label {
+      display: block;
+      margin-bottom: 0.4rem;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+    .form-group input[type="text"],
+    .form-group textarea,
+    .form-group input[type="password"] {
+      width: 100%;
+      padding: 0.8rem 1rem;
+      background: #16213e;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 0.95rem;
+    }
+    .form-group input:focus,
+    .form-group textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+    .btn-success {
+      padding: 0.85rem 1.6rem;
+      background: #2ecc71;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .btn-success:hover { background: #27ae60; }
+
+    /* ─── Список книг (карточки) ─── */
+    .book-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 1.2rem;
+    }
+    .book-item {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+    }
+    .book-title {
+      font-weight: 600;
+      margin: 0;
+    }
+    .book-keywords {
+      font-size: 0.85rem;
+      color: var(--muted);
+      word-break: break-all;
+    }
+    .book-actions button {
+      margin-top: 0.6rem;
+      padding: 0.5rem 0.8rem;
+      font-size: 0.85rem;
+    }
+
+    /* ─── Превью обложки ─── */
+    #coverPreview img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 6px;
+      margin-top: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+
+    /* ─── Адаптив ─── */
+    @media (max-width: 600px) {
+      header { padding: 1rem 1.2rem; }
+      h1 { font-size: 1.3rem; }
+      .quick-nav-grid { gap: 1rem; }
+      .search-box { flex-direction: column; }
+      .btn-primary { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1><strong>Рукопись не горит!</strong></h1>
+  </header>
+
+  <!-- Новые карточки-навигации -->
+  <div class="quick-nav-grid">
+    <a href="new-books.html" class="nav-card">
+      <h3>Новые книги</h3>
+      <p>Только что добавленные издания — смотри первым</p>
+    </a>
+    <a href="popular.html" class="nav-card">
+      <h3>Популярные</h3>
+      <p>Самые читаемые и любимые пользователями</p>
+    </a>
+    <a href="history.html" class="nav-card">
+      <h3>Вы искали</h3>
+      <p>История ваших запросов и просмотренных книг</p>
+    </a>
+  </div>
+
+  <main class="search-container">
+    <div class="search-box">
+      <input type="text" id="searchInput" placeholder="Введите название (например: гайды по Minecraft)" autocomplete="off">
+      <button id="searchBtn" class="btn-primary">Поиск книг</button>
+    </div>
+    <p id="resultMessage" class="result-message"></p>
+  </main>
+
+  <div class="admin-trigger-wrapper">
+    <button id="adminToggleBtn" class="btn-admin">Я АДМИН</button>
+  </div>
+
+  <!-- Экран входа -->
+  <div id="loginScreen">
+    <div class="login-box">
+      <h3>Вход в админ-панель</h3>
+      <input type="password" id="adminPassword" placeholder="Введите пароль" autocomplete="off">
+      <br><br>
+      <button class="btn-admin" onclick="checkAdminLogin()">Войти</button>
+      <button class="btn-primary" onclick="closeLogin()">Отмена</button>
+      <p class="login-hint">Доступ только для администратора</p>
+    </div>
+  </div>
+
+  <!-- Админ-панель -->
+  <div id="adminPanel">
+    <div class="admin-section">
+      <h3>Создать новую книгу</h3>
+      <div class="form-group">
+        <label>Название</label>
+        <input type="text" id="newBookTitle" placeholder="Например: Гайды по Minecraft">
+      </div>
+      <div class="form-group">
+        <label>Ключевые слова (через запятую)</label>
+        <input type="text" id="newBookKeywords" placeholder="minecraft,гайд,руководство">
+      </div>
+      <div class="form-group">
+        <label>Обложка (картинка)</label>
+        <input type="file" id="newBookCover" accept="image/*" onchange="previewCover(this)">
+        <div id="coverPreview" style="margin-top:10px; height:120px;"></div>
+      </div>
+      <div class="form-group">
+        <label>Описание книги (поддерживаются HTML-теги)</label>
+        <textarea id="newBookDescription" rows="6" placeholder="Можно использовать: &lt;b&gt;, &lt;i&gt;, &lt;ul&gt;&lt;li&gt;..., &lt;a&gt;..."></textarea>
+      </div>
+      <div class="form-group">
+        <label>Имя файла (без расширения)</label>
+        <input type="text" id="newBookFileName" placeholder="guide_minecraft">
+        <small style="color:var(--muted);">Автоматически создаст .html и .rtf</small>
+      </div>
+      <button id="createBookBtn" class="btn-success">Создать книгу (.html + .rtf)</button>
+    </div>
+
+    <div class="admin-section">
+      <h3>Список книг</h3>
+      <div id="bookList" class="book-list"></div>
+    </div>
+  </div>
+
+<script>
+const BOOKS_KEY = 'library_books';
+
+function getBooks() {
+    const stored = localStorage.getItem(BOOKS_KEY);
+    return stored ? JSON.parse(stored) : [];
+}
+
+function saveBooks(books) {
+    localStorage.setItem(BOOKS_KEY, JSON.stringify(books));
+}
+
+// Безопасное экранирование опасных символов
+function escapeHtmlUnsafe(str) {
+    if (!str) return '';
+    return str
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+// Разрешаем только безопасные HTML‑теги
+function sanitizeHtml(html) {
+    if (!html) return '';
+    let safe = escapeHtmlUnsafe(html);
+
+    safe = safe
+        .replace(/&lt;b&gt;/g, '<b>')
+        .replace(/&lt;\/b&gt;/g, '</b>')
+        .replace(/&lt;i&gt;/g, '<i>')
+        .replace(/&lt;\/i&gt;/g, '</i>')
+        .replace(/&lt;u&gt;/g, '<u>')
+        .replace(/&lt;\/u&gt;/g, '</u>')
+        .replace(/&lt;br&gt;/g, '<br>')
+        .replace(/&lt;ul&gt;/g, '<ul>')
+        .replace(/&lt;\/ul&gt;/g, '</ul>')
+        .replace(/&lt;li&gt;/g, '<li>')
+        .replace(/&lt;\/li&gt;/g, '</li>')
+        .replace(/&lt;a\s+href=["']?([^"']+)["']?\s*&gt;/gi, '<a href="$1">')
+        .replace(/&lt;\/a&gt;/g, '</a>');
+
+    return safe;
+}
+
+// Генерация RTF
+function generateRtf(title, description) {
+    function rtfEscape(text) {
+        return (text || '')
+            .replace(/\\/g, '\\\\')
+            .replace(/\{/g, '\\{')
+            .replace(/\}/g, '\\}')
+            .replace(/\n/g, '\\par\n');
+    }
+
+    function toRtfUnicode(text) {
+        let result = '';
+        for (let i = 0; i < text.length; i++) {
+            const code = text.charCodeAt(i);
+            if (code > 127) {
+                result += '\\u' + code + '?';
+            } else {
+                result += text[i];
+            }
+        }
+        return result;
+    }
+
+    const rtfTitle = toRtfUnicode(rtfEscape(title));
+    const rtfDesc = toRtfUnicode(rtfEscape(description));
+
+    return `{\\rtf1\\ansi\\deff0
+{\\fonttbl{\\f0 Times New Roman;}}
+{\\colortbl;\\red233\\green69\\blue96;}
+\\f0\\fs48\\cf1 ${rtfTitle}\\par
+\\par
+\\fs24\\cf0 ${rtfDesc}\\par
+}`;
+}
+
+// Генерация HTML для книги
+function generateHtml(title, htmlDescription, rtfFileName, coverDataUrl) {
+    const desc = sanitizeHtml(htmlDescription).replace(/\n/g, '<br>');
+    const coverStyle = coverDataUrl ? `background-image: url(${coverDataUrl}); background-size: cover; background-position: center;` : '';
+
+    return `<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${escapeHtmlUnsafe(title)}</title>
+    <style>
+        :root {
+            --bg: #1a1a2e; --card: #16213e; --input: #0f3460;
+            --text: #e0e0e0; --muted: #8892b0; --accent: #e94560; --accent-hover: #ff6b81;
+        }
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Georgia', serif; line-height: 1.7;
+            max-width: 750px; margin: 40px auto; padding: 0 20px;
+            color: var(--text); background: var(--bg); min-height: 100vh;
+        }
+        h1 {
+            color: var(--accent);
+            border-bottom: 2px solid var(--accent);
+            padding-bottom: 12px;
+        }
+        p { margin-bottom: 1.2em; }
+        .cover-block {
+            ${coverStyle}
+            height: 220px; width: 100%; border-radius: 12px;
+            margin-bottom: 20px; background-color: #000;
+        }
+        ul { margin-bottom: 1em; padding-left: 20px; }
+        li { margin-bottom: 0.5em; }
+        a { color: var(--accent); text-decoration: underline; }
+        a:hover { color: var(--accent-hover); }
+        .download-btn {
+            display: inline-block; margin-top: 25px; padding: 12px 24px;
+            background: #2ecc71; color: white; text-decoration: none;
+            border-radius: 6px; font-size: 16px; transition: background 0.2s;
+        }
+        .download-btn:hover { background: #27ae60; }
+        .back-link {
+            display: inline-block; margin-top: 15px; padding: 10px 18px;
+            background: var(--input); color: var(--text); text-decoration: none;
+            border-radius: 6px; font-size: 14px;
+        }
+        .back-link:hover { background: #1a4a7a; }
+    </style>
+</head>
+<body>
+    <a href="BDF.html" class="back-link">&larr; Вернуться в библиотеку</a>
+    <div class="cover-block"></div>
+    <h1>${escapeHtmlUnsafe(title)}</h1>
+    <div>${desc}</div>
+    <a href="${escapeHtmlUnsafe(rtfFileName)}" download class="download-btn">Скачать как .rtf</a>
+</body>
+</html>`;
+}
+
+// Скачивание файла
+function downloadFile(content, fileName, mimeType) {
+    const blob = new Blob([content], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
+// Превью обложки
+function previewCover(input) {
+    const file = input.files[0];
+    const preview = document.getElementById('coverPreview');
+    if (!file) {
+        preview.innerHTML = '';
+        return;
+    }
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        preview.innerHTML = `<img src="${e.target.result}" style="max-width:100%; max-height:120px; border-radius:6px;">`;
+    };
+    reader.readAsDataURL(file);
+}
+
+// Создание книги (HTML + RTF)
+async function createBookFiles(title, description, baseName, coverFile) {
+    const htmlFileName = baseName + '.html';
+    const rtfFileName = baseName + '.rtf';
+
+    if (coverFile) {
+        const reader = new FileReader();
+        return new Promise((resolve, reject) => {
+            reader.onload = (e) => {
+                const coverDataUrl = e.target.result;
+                const htmlContent = generateHtml(title, description, rtfFileName, coverDataUrl);
+                downloadFile(htmlContent, htmlFileName, 'text/html');
+
+                const rtfContent = generateRtf(title, description);
+                setTimeout(() => {
+                    downloadFile(rtfContent, rtfFileName, 'application/rtf');
+                }, 300);
+
+                resolve(htmlFileName);
+            };
+            reader.onerror = reject;
+            reader.readAsDataURL(coverFile);
+        });
+    } else {
+        const htmlContent = generateHtml(title, description, rtfFileName, '');
+        downloadFile(htmlContent, htmlFileName, 'text/html');
+
+        const rtfContent = generateRtf(title, description);
+        setTimeout(() => {
+            downloadFile(rtfContent, rtfFileName, 'application/rtf');
+        }, 300);
+
+        return Promise.resolve(htmlFileName);
+    }
+}
+
+// Inline‑сообщение
+function showInlineMessage(text, type) {
+    const el = document.createElement('div');
+    el.style.cssText = `
+        position: fixed; top: 20px; right: 20px; padding: 15px 25px;
+        border-radius: 8px; color: white; font-size: 15px; z-index: 10000;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.3); transition: opacity 0.4s;
+        background: ${type === 'success' ? '#2ecc71' : type === 'warn' ? '#e94560' : '#0f3460'};
+    `;
+    el.textContent = text;
+    document.body.appendChild(el);
+    setTimeout(() => {
+        el.style.opacity = '0';
+        setTimeout(() => el.remove(), 400);
+    }, 3500);
+}
+
+// Вход в админку
+window.checkAdminLogin = function() {
+    const password = document.getElementById('adminPassword').value;
+    if (password === '2679') {
+        document.getElementById('loginScreen').classList.remove('visible');
+        document.getElementById('adminPanel').classList.add('visible');
+        document.getElementById('adminToggleBtn').textContent = 'Скрыть админку';
+        showInlineMessage('Добро пожаловать в админ-панель', 'success');
+    } else {
+        showInlineMessage('Неверный пароль', 'warn');
+    }
+};
+
+window.closeLogin = function() {
+    document.getElementById('loginScreen').classList.remove('visible');
+};
+
+// Список книг
+function renderBookList() {
+    const listEl = document.getElementById('bookList');
+    listEl.innerHTML = '';
+
+    const books = getBooks();
+    if (books.length === 0) {
+        listEl.innerHTML = '<p style="color:var(--text-muted);">Книг пока нет. Создайте первую!</p>';
+        return;
+    }
+
+    books.forEach(book => {
+        const item = document.createElement('div');
+        item.className = 'book-item';
+        item.innerHTML = `
+            <div>
+                <strong>${escapeHtmlUnsafe(book.title)}</strong><br>
+                <small>Ключевые слова: ${escapeHtmlUnsafe(book.keywords) || '—'}</small><br>
+                <small>Файл: ${escapeHtmlUnsafe(book.file)}</small>
+                ${book.cover ? `<small style="color:#e94560">Обложка: ${escapeHtmlUnsafe(book.cover)}</small>` : ''}
+            </div>
+            <div style="display:flex; gap:8px;">
+                <button class="btn-admin" onclick="updateBook(${book.id})">Обновить</button>
+                <button class="btn-primary" onclick="deleteBook(${book.id})">Удалить</button>
+            </div>
+        `;
+        listEl.appendChild(item);
+    });
+}
+
+// Обновить книгу
+window.updateBook = function(id) {
+    let books = getBooks();
+    const book = books.find(b => b.id === id);
+    if (!book) return;
+
+    const newTitle = window.prompt('Новое название:', book.title);
+    if (newTitle === null) return;
+
+    const newKeywords = window.prompt('Новые ключевые слова:', book.keywords);
+    if (newKeywords === null) return;
+
+    const newFile = window.prompt('Новый путь к файлу:', book.file);
+    if (newFile === null) return;
+
+    book.title = newTitle;
+    book.keywords = newKeywords;
+    book.file = newFile;
+    saveBooks(books);
+    renderBookList();
+    showInlineMessage('Книга обновлена', 'success');
+};
+
+// Удалить книгу
+window.deleteBook = function(id) {
+    if (!confirm('Удалить эту книгу из библиотеки?')) return;
+    let books = getBooks().filter(b => b.id !== id);
+    saveBooks(books);
+    renderBookList();
+    showInlineMessage('Книга удалена', 'warn');
+};
+
+// Обработчики для карточек-навигаций (если страниц реально нет — покажем подсказку)
+document.querySelectorAll('.nav-card a').forEach(link => {
+    link.addEventListener('click', function(e) {
+        const href = this.getAttribute('href');
+        // Здесь можно добавить свою логику: например, открывать модальное окно вместо перехода
+        // Пока просто разрешаем переход
+        // Если хочешь, чтобы переход был только при наличии файла — напиши, сделаю проверку
+    });
+});
+
+// Инициализация
+document.addEventListener('DOMContentLoaded', () => {
+    renderBookList();
+
+    // Поиск
+    const searchInput = document.getElementById('searchInput');
+    const searchBtn = document.getElementById('searchBtn');
+    const resultMessage = document.getElementById('resultMessage');
+
+    function performSearch() {
+        const query = searchInput.value.trim().toLowerCase();
+        resultMessage.textContent = '';
+
+        if (!query) {
+            resultMessage.textContent = 'Введите название для поиска.';
+            resultMessage.style.color = 'var(--accent)';
+            return;
+        }
+
+        const books = getBooks();
+        const match = books.find(b =>
+            b.title.toLowerCase().includes(query) ||
+            b.keywords.toLowerCase().includes(query)
+        );
+
+        if (match) {
+            window.location.href = match.file;
+        } else {
+            resultMessage.textContent = `По запросу "${searchInput.value}" ничего не найдено.`;
+            resultMessage.style.color = 'var(--text-muted)';
+        }
+    }
+
+    searchBtn.addEventListener('click', performSearch);
+    searchInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') performSearch();
+    });
+
+    // Кнопка «Я АДМИН»
+    document.getElementById('adminToggleBtn').addEventListener('click', () => {
+        document.getElementById('loginScreen').classList.add('visible');
+        document.getElementById('adminPassword').value = '';
+        document.getElementById('adminPassword').focus();
+    });
+
+    document.getElementById('adminPassword').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') checkAdminLogin();
+    });
+
+    // Создать книгу
+    document.getElementById('createBookBtn').addEventListener('click', async () => {
+        const title = document.getElementById('newBookTitle').value.trim();
+        const keywords = document.getElementById('newBookKeywords').value.trim();
+        const description = document.getElementById('newBookDescription').value.trim();
+        let baseName = document.getElementById('newBookFileName').value.trim();
+        const coverInput = document.getElementById('newBookCover');
+        const coverFile = coverInput.files[0] || null;
+
+        if (!title) {
+            showInlineMessage('Укажите название книги.', 'warn');
+            return;
+        }
+        if (!baseName) {
+            baseName = title.toLowerCase()
+                .replace(/[^a-z0-9а-яё]/gi, '_')
+                .replace(/_+/g, '_')
+                .substring(0, 40);
+        }
+
+        const htmlFileName = await createBookFiles(title, description, baseName, coverFile);
+
+        const newBook = {
+            id: Date.now(),
+            title,
+            keywords,
+            file: htmlFileName,
+            cover: coverFile ? coverFile.name : null
+        };
+
+        let books = getBooks();
+        books.push(newBook);
+        saveBooks(books);
+        renderBookList();
+
+        showInlineMessage(`Книга создана! Скачаны файлы: ${baseName}.html и ${baseName}.rtf`, 'success');
+
+        document.getElementById('newBookTitle').value = '';
+        document.getElementById('newBookKeywords').value = '';
+        document.getElementById('newBookDescription').value = '';
+        document.getElementById('newBookFileName').value = '';
+        coverInput.value = '';
+        document.getElementById('coverPreview').innerHTML = '';
+    });
+});
+</script>
+</body>
+</html>

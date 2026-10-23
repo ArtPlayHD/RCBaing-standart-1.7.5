@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>SAdventure: Мир Приключений</title>
+    <style>
+        :root {
+            --primary: #4a763e;
+            --accent: #f5a623;
+            --danger: #d32f2f;
+            --bg: #f0f4e8;
+            --card: #ffffff;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            color: #333;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+        .game-container {
+            width: 100%;
+            max-width: 600px;
+            background: var(--card);
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+            padding: 24px;
+        }
+        h1 {
+            text-align: center;
+            color: var(--primary);
+            margin-bottom: 16px;
+        }
+        .story-text {
+            line-height: 1.6;
+            margin-bottom: 20px;
+            white-space: pre-wrap;
+        }
+        .controls {
+            display: grid;
+            gap: 12px;
+        }
+        button {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 18px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 15px;
+            transition: transform 0.1s, background 0.2s;
+        }
+        button:hover {
+            background: #35562b;
+            transform: translateY(-1px);
+        }
+        button.danger {
+            background: var(--danger);
+        }
+        button.accent {
+            background: var(--accent);
+            color: #222;
+        }
+        img.terrain {
+            width: 100%;
+            border-radius: 8px;
+            margin-top: 16px;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.08);
+        }
+        .hidden {
+            display: none;
+        }
+        .fade-in {
+            animation: fadeIn 0.4s ease-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+
+<div class="game-container">
+    <h1>SAdventure</h1>
+    <img src="EASY_TERRAIN.jpg" alt="Мир приключений" class="terrain">
+
+    <!-- Экран 1: старт -->
+    <div id="screen-start" class="fade-in">
+        <p class="story-text">Ты стоишь на границе неизведанного мира. Ветер шепчет древние легенды. Пора выбрать путь.</p>
+        <div class="controls">
+            <button id="btn-start">Начать приключение</button>
+        </div>
+    </div>
+
+    <!-- Экран 2: выбор персонажа и монстра -->
+    <div id="screen-char-monster" class="hidden fade-in">
+        <p class="story-text">Выбери героя и своего вечного соперника:</p>
+        <input type="text" id="input-gamer" placeholder="Имя героя" style="width:100%; padding:10px; margin-bottom:12px; border:1px solid #ccc; border-radius:6px;">
+        <input type="text" id="input-monster" placeholder="Любимый монстр" style="width:100%; padding:10px; border:1px solid #ccc; border-radius:6px; margin-bottom:16px;">
+        <div class="controls">
+            <button id="btn-confirm-char">Продолжить</button>
+        </div>
+    </div>
+
+    <!-- Экран 3: выбор постройки -->
+    <div id="screen-build" class="hidden fade-in">
+        <p id="story-build" class="story-text"></p>
+        <div class="controls">
+            <button class="accent" data-choice="кровать">Кровать</button>
+            <button class="accent" data-choice="дом">Дом</button>
+            <button class="danger" data-choice="ничего">Ничего</button>
+        </div>
+    </div>
+
+    <!-- Экран 4: волк -->
+    <div id="screen-wolf" class="hidden fade-in">
+        <p id="story-wolf" class="story-text"></p>
+        <div class="controls">
+            <button class="accent" data-choice="приручает">Приручить волка</button>
+            <button class="danger" data-choice="бежать">Бежать</button>
+        </div>
+    </div>
+
+    <!-- Экран 5: финал с новым поворотом -->
+    <div id="screen-final" class="hidden fade-in">
+        <p id="story-final" class="story-text"></p>
+        <div class="controls">
+            <button id="btn-restart">Начать заново</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const screens = {
+        start: document.getElementById('screen-start'),
+        charMonster: document.getElementById('screen-char-monster'),
+        build: document.getElementById('screen-build'),
+        wolf: document.getElementById('screen-wolf'),
+        final: document.getElementById('screen-final')
+    };
+
+    function showScreen(id) {
+        Object.values(screens).forEach(el => el.classList.add('hidden'));
+        screens[id].classList.remove('hidden');
+    }
+
+    // Старт
+    document.getElementById('btn-start').addEventListener('click', () => {
+        showScreen('charMonster');
+    });
+
+    // Подтверждение персонажа и монстра
+    document.getElementById('btn-confirm-char').addEventListener('click', () => {
+        const gamer = document.getElementById('input-gamer').value.trim();
+        const monster = document.getElementById('input-monster').value.trim();
+
+        if (!gamer || !monster) {
+            alert('Пожалуйста, введите имя героя и монстра.'); // единственный alert — для валидации
+            return;
+        }
+
+        // Сохраняем в замыкание
+        window.currentGame = { gamer, monster };
+
+        const storyEl = document.getElementById('story-build');
+        storyEl.textContent = `${gamer} попал в новый мир. Что построишь, чтобы выжить?`;
+        showScreen('build');
+    });
+
+    // Выбор постройки
+    const buildBtns = document.querySelectorAll('#screen-build button[data-choice]');
+    buildBtns.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const choice = e.target.dataset.choice;
+            const gamer = window.currentGame.gamer;
+            const monster = window.currentGame.monster;
+
+            window.currentGame.build = choice;
+
+            const storyEl = document.getElementById('story-wolf');
+            if (choice === 'кровать') {
+                storyEl.textContent = `${gamer} построил кровать и лёг спать. Но ночью из тени вышел волк! Теперь нужно решить: приручить его или бежать.`;
+            } else if (choice === 'дом') {
+                storyEl.textContent = `${gamer} построил крепкий дом. Теперь монстр ему не страшен… но внезапно появляется волк! Приручить или бежать?`;
+            } else {
+                // ничего
+                storyEl.textContent = `${gamer} решил ничего не строить и сразу начал игру. Тут же из кустов выпрыгнул волк! Приручить или бежать?`;
+            }
+            showScreen('wolf');
+        });
+    });
+
+    // Волк
+    const wolfBtns = document.querySelectorAll('#screen-wolf button[data-choice]');
+    wolfBtns.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const choice = e.target.dataset.choice;
+            const gamer = window.currentGame.gamer;
+            const monster = window.currentGame.monster;
+            const build = window.currentGame.build;
+
+            const storyFinalEl = document.getElementById('story-final');
+
+            // Новый, более сложный финал с ветвлением
+            let finalText = '';
+
+            if (build === 'дом' && choice === 'приручает') {
+                finalText = `${gamer} приручил волка, и теперь у него есть верный защитник. Вместе они победили ${monster} и нашли древний артефакт — ключ к новым землям. Победа!`;
+            } else if (build === 'кровать' && choice === 'приручает') {
+                finalText = `${gamer} приручил волка, но из-за того, что не было дома, ночью ${monster} всё равно проник внутрь. Волк спас героя, но тот потерял часть снаряжения. Полупобеда.`;
+            } else if (choice === 'бежать') {
+                finalText = `${gamer} попытался убежать от волка, но споткнулся о корень и упал у порога. Из темноты вышел ${monster}. Герой едва успел скрыться. Пора начать заново и выбрать другой путь.`;
+            } else if (build === 'ничего' && choice === 'приручает') {
+                finalText = `${gamer} не построил ничего, но сумел приручить волка. Это был рискованный шаг, но он сработал: волк прогнал ${monster}, и герой нашёл тайную пещеру с сокровищами.`;
+            } else {
+                // fallback
+                finalText = `${gamer} столкнулся с трудностями. История ещё не закончена — попробуй другой путь!`;
+            }
+
+            storyFinalEl.textContent = finalText;
+            showScreen('final');
+        });
+    });
+
+    // Рестарт
+    document.getElementById('btn-restart').addEventListener('click', () => {
+        document.getElementById('input-gamer').value = '';
+        document.getElementById('input-monster').value = '';
+        showScreen('start');
+    });
+</script>
+
+</body>
+</html>

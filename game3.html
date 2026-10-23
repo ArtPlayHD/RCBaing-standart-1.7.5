@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8">
+    <title>Выбор приключения</title>
+    <style>
+      :root {
+        --bg-color: #121212;
+        --card-bg: #1e1e1e;
+        --text-color: #e0e0e0;
+        --accent-color: #bb86fc;
+        --danger-color: #cf6679;
+        --border-color: #333;
+      }
+
+      body {
+        margin: 0;
+        padding: 0;
+        background-color: var(--bg-color);
+        color: var(--text-color);
+        font-family: Arial, Helvetica, sans-serif;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        min-height: 100vh;
+      }
+
+      header {
+        width: 100%;
+        padding: 1rem 0;
+        text-align: center;
+        border-bottom: 1px solid var(--border-color);
+        margin-bottom: 2rem;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 2rem;
+      }
+
+      .container {
+        max-width: 600px;
+        width: 90%;
+      }
+
+      .difficulty-section, .mods-section {
+        background: var(--card-bg);
+        padding: 1.5rem;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        margin-bottom: 1.5rem;
+      }
+
+      .section-title {
+        margin-top: 0;
+        color: var(--accent-color);
+        margin-bottom: 1rem;
+      }
+
+      .btn-group {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+      }
+
+      button {
+        padding: 1rem;
+        border: none;
+        border-radius: 8px;
+        background: transparent;
+        color: var(--text-color);
+        cursor: pointer;
+        font-weight: bold;
+        transition: all 0.2s ease;
+        text-transform: uppercase;
+      }
+
+      button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.4);
+      }
+
+      .btn-easy { background-color: #03dac6; color: #000; }
+      .btn-normal { background-color: var(--accent-color); color: #000; }
+      .btn-hard { background-color: var(--danger-color); color: #fff; }
+
+      .input-area {
+        display: flex;
+        gap: 0.5rem;
+      }
+
+      input[type="text"] {
+        flex: 1;
+        padding: 0.75rem;
+        border-radius: 6px;
+        border: 1px solid var(--border-color);
+        background: #2c2c2c;
+        color: white;
+      }
+
+      .status-msg {
+        margin-top: 1rem;
+        padding: 0.75rem;
+        background: #2c2c2c;
+        border-radius: 6px;
+        text-align: center;
+        display: none; /* скрыто по умолчанию */
+      }
+
+      img {
+        width: 100%;
+        max-width: 500px;
+        border-radius: 12px;
+        margin-top: 1.5rem;
+        box-shadow: 0 6px 16px rgba(0,0,0,0.5);
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Приключение ждёт</h1>
+    </header>
+
+    <div class="container">
+      <section class="difficulty-section">
+        <h3 class="section-title">Выбери сложность</h3>
+        <div class="btn-group">
+          <button class="btn-easy" >Просто</button>
+          <button class="btn-normal" onclick="window.location.href='Medium.html'">Нормально</button>
+          <button class="btn-hard" onclick="window.location.href='ERROR'">Хард</button>
+        </div>
+      </section>
+
+      <section class="mods-section">
+        <h3 class="section-title">Модификация</h3>
+        <p>Введи код, если есть:</p>
+        <div class="input-area">
+          <input type="text" id="modCode" placeholder="Код модификации">
+          <button onclick="applyMod()">Применить</button>
+        </div>
+        <div id="modStatus" class="status-msg"></div>
+      </section>
+
+      <p style="font-size: 0.9rem; color: #aaa; text-align: center;">
+        Думай, прежде чем писать!
+      </p>
+
+      <!-- Замени game3.jpg на свою картинку или оставь как есть -->
+      <img src="game3.jpg" alt="Обложка игры">
+    </div>
+<script>
+  // Проверка статуса страницы
+  if (localStorage.getItem('open/close') === '0') {
+    window.location.href = 'Page_close.html';
+  }
+
+  function applyMod() {
+    const code = document.getElementById('modCode').value.trim();
+    const statusEl = document.getElementById('modStatus');
+
+    // Сначала скрываем предыдущее сообщение и сбрасываем цвет
+    statusEl.style.display = 'none';
+    statusEl.style.color = '';
+
+    if (!code) {
+      statusEl.textContent = 'Введи код!';
+      statusEl.style.color = '#cf6679';
+      statusEl.style.display = 'block';
+      return;
+    }
+
+    if (code === 'KD12JFG1D1YTFG9') {
+      statusEl.textContent = 'Модификация активирована: ответы на все вопросы!';
+      statusEl.style.color = '#03dac6';
+      statusEl.style.display = 'block';
+
+      // Пример сохранения в localStorage (если нужно)
+      localStorage.setItem('KD12JFG1D1YTFG9', 'true');
+    } else {
+      statusEl.textContent = 'Такой модификации не существует!';
+      statusEl.style.color = '#cf6679';
+      statusEl.style.display = 'block';
+    }
+  }
+</script>
+
+</body>
+</html>

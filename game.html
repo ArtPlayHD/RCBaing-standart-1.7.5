@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Крипер на ферме — игра</title>
+    <style>
+        :root {
+            --bg: #12121a;
+            --panel: #1e1e2b;
+            --accent: #4dbd5c;
+            --accent-hover: #3aa347;
+            --text: #e0e0e8;
+            --danger: #ff5555;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden; /* чтобы не было скролла */
+        }
+
+        #topbar {
+            background: var(--panel);
+            padding: 12px 20px;
+            border-bottom: 2px solid var(--accent);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        h3 {
+            margin: 0;
+            font-weight: 600;
+        }
+
+        .stats-panel {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .stat-box {
+            background: rgba(0,0,0,0.3);
+            padding: 8px 16px;
+            border-radius: 6px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .stat-label {
+            font-size: 0.85em;
+            opacity: 0.9;
+            display: block;
+        }
+
+        .stat-value {
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+
+        #gamearea {
+            position: relative;
+            width: 100vw;
+            height: calc(100vh - 80px); /* под панель сверху */
+            overflow: hidden;
+            background: url('farm-bg.jpg') no-repeat center / cover; /* можно заменить на цвет */
+            background-color: #0b0b10;
+        }
+
+        img.monster {
+            position: absolute;
+            cursor: pointer;
+            transition: transform 0.1s ease;
+        }
+
+        img.monster:hover {
+            transform: scale(1.05);
+        }
+
+        button#SG1 {
+            padding: 14px 28px;
+            font-size: 1.1em;
+            background: var(--accent);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.2s, transform 0.1s;
+        }
+
+        button#SG1:hover:not(:disabled) {
+            background: var(--accent-hover);
+        }
+
+        button#SG1:disabled {
+            background: #444;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        #controls {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            text-align: center;
+        }
+    </style>
+    <!-- jQuery -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+</head>
+<body>
+
+    <div id="topbar">
+        <h3>Крипер у порога</h3>
+        <div class="stats-panel">
+            <div class="stat-box">
+                <span class="stat-label">Время</span>
+                <span id="timer" class="stat-value">60 сек</span>
+            </div>
+            <div class="stat-box">
+                <span class="stat-label">Счёт</span>
+                <span id="scoreboard" class="stat-value">0</span>
+            </div>
+            <div class="stat-box">
+                <span class="stat-label">Рекорд</span>
+                <span id="highscore" class="stat-value">0</span>
+            </div>
+        </div>
+    </div>
+
+    <div id="gamearea"></div>
+
+    <div id="controls">
+        <button id="SG1" class="gameinfo" onclick="startGame()">Старт</button>
+    </div>
+
+    <script>
+        // Проверка блокировки страницы
+        if (localStorage.getItem('open/close') === '0') {
+            alert('Страница закрыта.');
+            window.location.href = 'Page_close.html';
+        }
+
+        let highscore = 0;
+        let score = 0;
+        let gameLength = 60;
+        let monsterCount = 0;
+        let timerInterval = null;
+        let spawnInterval = null;
+
+        // Загрузка рекорда из localStorage
+        function loadHighscore() {
+            const saved = localStorage.getItem('game_highscore');
+            if (saved !== null) {
+                highscore = parseInt(saved, 10);
+                updateUI();
+            }
+        }
+
+        function saveHighscore() {
+            if (score > highscore) {
+                highscore = score;
+                localStorage.setItem('game_highscore', highscore.toString());
+                updateUI();
+            }
+        }
+
+        function updateUI() {
+            document.getElementById('scoreboard').textContent = score;
+            document.getElementById('highscore').textContent = highscore;
+        }
+
+        function startGame() {
+            // Сброс состояния
+            score = 0;
+            monsterCount = 0;
+            gameLength = 60;
+            clearInterval(timerInterval);
+            clearInterval(spawnInterval);
+
+            // Блокируем кнопку
+            const btn = document.getElementById('SG1');
+            btn.disabled = true;
+
+            updateUI();
+
+            // Таймер
+            timerInterval = setInterval(() => {
+                gameLength--;
+                document.getElementById('timer').textContent = gameLength + ' сек';
+
+                if (gameLength <= 0) {
+                    endGame();
+                }
+            }, 1000);
+
+            // Спавн монстров
+            spawnInterval = setInterval(() => {
+                if (gameLength <= 0) return;
+
+                monsterCount++;
+                const monsterID = 'monster' + monsterCount;
+
+                // Случайные позиции по всей области
+                const monsterX = Math.floor(Math.random() * 90) + 5; // 5–95%
+                const monsterY = Math.floor(Math.random() * 85) + 10; // 10–95%
+
+                const $monster = $('<img>')
+                    .attr('src', 'kreeper.jpg')
+                    .attr('id', monsterID)
+                    .addClass('monster')
+                    .css({
+                        'margin-left': monsterX + '%',
+                        'margin-top': monsterY + '%',
+                        'width': '8%'
+                    });
+
+                $monster.on('click', function() {
+                    $(this).remove();
+                    score += 10;
+                    updateUI();
+                    saveHighscore();
+                });
+
+                $('#gamearea').append($monster);
+            }, 900); // каждые 900 мс
+        }
+
+        function endGame() {
+            clearInterval(timerInterval);
+            clearInterval(spawnInterval);
+
+            const btn = document.getElementById('SG1');
+            btn.disabled = false;
+
+            document.getElementById('timer').textContent = 'Время вышло!';
+            saveHighscore(); // финальная проверка рекорда
+        }
+
+        // Инициализация при загрузке
+        loadHighscore();
+        updateUI();
+    </script>
+</body>
+</html>
