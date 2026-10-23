@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Minecraft SAdventure</title>
+    <style>
+        :root {
+            --mc-bg: #1a1a1d;
+            --mc-panel: #2b2b32;
+            --mc-text: #e0e0e0;
+            --mc-accent: #5cb85c;       /* зелёный как у изумруда */
+            --mc-danger: #d9534f;       /* красный как у лавы */
+            --mc-gold: #f0ad4e;         /* золотой как у золота */
+            --mc-block: #3a3a40;        /* цвет блока */
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--mc-bg);
+            color: var(--mc-text);
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .game-wrapper {
+            width: 100%;
+            max-width: 640px;
+            background: var(--mc-panel);
+            border: 4px solid var(--mc-block);
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 0 24px rgba(0,0,0,0.6);
+        }
+
+        h1 {
+            text-align: center;
+            color: var(--mc-accent);
+            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+            margin-bottom: 16px;
+            font-size: 28px;
+        }
+
+        .terrain-img {
+            width: 100%;
+            border-radius: 6px;
+            border: 2px solid var(--mc-block);
+            box-shadow: inset 0 0 12px rgba(0,0,0,0.4);
+            margin-bottom: 18px;
+        }
+
+        .story-box {
+            line-height: 1.6;
+            margin-bottom: 24px;
+            padding: 12px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid var(--mc-block);
+            border-radius: 4px;
+            white-space: pre-wrap;
+        }
+
+        .controls {
+            display: grid;
+            gap: 10px;
+        }
+
+        button {
+            background: var(--mc-block);
+            color: var(--mc-text);
+            border: 2px solid var(--mc-block);
+            padding: 12px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.15s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        button:hover {
+            background: #4a4a55;
+            border-color: #666;
+            transform: translateY(-1px);
+        }
+
+        button.btn-start {
+            background: var(--mc-accent);
+            color: #000;
+            border-color: var(--mc-accent);
+        }
+        button.btn-start:hover {
+            background: #4cae4c;
+        }
+
+        button.btn-danger {
+            background: var(--mc-danger);
+            color: white;
+            border-color: var(--mc-danger);
+        }
+        button.btn-danger:hover {
+            background: #c9302c;
+        }
+
+        button.btn-gold {
+            background: var(--mc-gold);
+            color: #000;
+            border-color: var(--mc-gold);
+        }
+        button.btn-gold:hover {
+            background: #e68a00;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 14px;
+            background: #111;
+            color: var(--mc-text);
+            border: 1px solid var(--mc-block);
+            border-radius: 4px;
+            font-size: 15px;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .fade-in {
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+
+<div class="game-wrapper">
+    <h1>Minecraft SAdventure</h1>
+
+    <!-- Картинка мира (оставь EASY_TERRAIN.jpg или замени на любую) -->
+    <img src="EASY_TERRAIN.jpg" alt="Мир Minecraft" class="terrain-img">
+
+    <!-- Экран 1: старт -->
+    <div id="screen-start" class="fade-in">
+        <p class="story-box">Ты стоишь у края неизведанного биома. Ветер разносит запах лавы и пыли. Пора создать свой мир.</p>
+        <div class="controls">
+            <button id="btn-start" class="btn-start">Создать мир</button>
+        </div>
+    </div>
+	<div id="error-char-monster" class="hidden" style="color:#cf6679; margin:0.5rem 0;">Ошибка</div>
+
+
+    <!-- Экран 2: имя героя и монстр -->
+    <div id="screen-char-monster" class="hidden fade-in">
+        <p class="story-box">Выбери имя своего героя и вечного соперника, который будет охотиться за тобой в этом мире.</p>
+        <input type="text" id="input-gamer" placeholder="Имя героя (например, Steve)" autocomplete="off">
+        <input type="text" id="input-monster" placeholder="Любимый монстр (например, Creeper)" autocomplete="off">
+        <div class="controls">
+            <button id="btn-confirm-char" class="btn-start">Продолжить</button>
+        </div>
+    </div>
+
+    <!-- Экран 3: постройка -->
+    <div id="screen-build" class="hidden fade-in">
+        <p id="story-build" class="story-box"></p>
+        <div class="controls">
+            <button data-choice="кровать" class="btn-gold">Построить кровать</button>
+            <button data-choice="дом" class="btn-start">Построить дом</button>
+            <button data-choice="ничего" class="btn-danger">Ничего не строить</button>
+        </div>
+    </div>
+
+    <!-- Экран 4: волк -->
+    <div id="screen-wolf" class="hidden fade-in">
+        <p id="story-wolf" class="story-box"></p>
+        <div class="controls">
+            <button data-choice="приручает" class="btn-start">Приручить волка</button>
+            <button data-choice="бежит" class="btn-danger">Бежать от волка</button>
+        </div>
+    </div>
+
+    <!-- Экран 5: деревня и изумруды -->
+    <div id="screen-village" class="hidden fade-in">
+        <p id="story-village" class="story-box"></p>
+        <div class="controls">
+            <button data-choice="отнимает" class="btn-danger">Отнять изумруды</button>
+            <button data-choice="торгует" class="btn-start">Торговать с жителем</button>
+        </div>
+    </div>
+
+    <!-- Экран 6: портал или броня -->
+    <div id="screen-portal-or-armor" class="hidden fade-in">
+        <p id="story-portal-armor" class="story-box"></p>
+        <div class="controls">
+            <button data-choice="портал" class="btn-danger">Построить портал и войти</button>
+            <button data-choice="остаться" class="btn-start">Остаться в деревне, добыть броню</button>
+        </div>
+    </div>
+
+    <!-- Финал -->
+    <div id="screen-final" class="hidden fade-in">
+        <p id="story-final" class="story-box"></p>
+        <div class="controls">
+            <button id="btn-restart" class="btn-start">Начать заново</button>
+        </div>
+    </div>
+</div>
+
+<script>
+  // Инициализация экранов (с проверкой, чтобы не ломалось, если чего-то нет)
+  const screens = {
+    start: document.getElementById('screen-start'),
+    charMonster: document.getElementById('screen-char-monster'),
+    build: document.getElementById('screen-build'),
+    wolf: document.getElementById('screen-wolf'),
+    village: document.getElementById('screen-village'),
+    portalArmor: document.getElementById('screen-portal-or-armor'),
+    final: document.getElementById('screen-final')
+  };
+
+  function showScreen(id) {
+    // Сначала скрываем все экраны, которые есть
+    Object.values(screens).forEach(el => {
+      if (el) el.classList.add('hidden');
+    });
+    // Показываем нужный, если он существует
+    const target = screens[id];
+    if (target) {
+      target.classList.remove('hidden');
+    } else {
+      console.error('Экран не найден:', id);
+    }
+  }
+
+  // Вспомогательная функция для красивой ошибки вместо alert
+  function setError(elementId, message) {
+    const el = document.getElementById(elementId);
+    if (!el) return;
+    el.textContent = message;
+    el.classList.remove('hidden'); // показать сообщение
+  }
+
+  function clearError(elementId) {
+    const el = document.getElementById(elementId);
+    if (!el) return;
+    el.classList.add('hidden');
+  }
+
+  // Старт
+  const btnStart = document.getElementById('btn-start');
+  if (btnStart) {
+    btnStart.addEventListener('click', () => {
+      showScreen('charMonster');
+    });
+  }
+
+  // Подтверждение имени и монстра
+  const btnConfirmChar = document.getElementById('btn-confirm-char');
+  if (btnConfirmChar) {
+    btnConfirmChar.addEventListener('click', () => {
+      const gamerInput = document.getElementById('input-gamer');
+      const monsterInput = document.getElementById('input-monster');
+      const errorEl = document.getElementById('error-char-monster'); // нужен в HTML
+
+      if (!gamerInput || !monsterInput) {
+        console.error('Поля имени и монстра не найдены');
+        return;
+      }
+
+      const gamer = gamerInput.value.trim();
+      const monster = monsterInput.value.trim();
+
+      if (!gamer || !monster) {
+        setError('error-char-monster', 'Пожалуйста, введите имя героя и монстра.');
+        return;
+      } else {
+        clearError('error-char-monster');
+      }
+
+      // Сохраняем состояние
+      window.currentGame = { gamer, monster, build: null, wolfChoice: null, villageChoice: null };
+
+      const storyEl = document.getElementById('story-build');
+      if (!storyEl) {
+        console.error('Элемент story-build не найден');
+        return;
+      }
+
+      // Проверка модификатора (исправленная логика)
+      const isModActive = localStorage.getItem('KD12JFG1D1YTFG9') === 'true';
+      if (isModActive) {
+        storyEl.textContent = 'Нажимай только на зелёные кнопки и пройди игру!';
+      } else {
+        storyEl.textContent = `${gamer} попал в новый мир. Что построишь, чтобы выжить?`;
+      }
+
+      showScreen('build');
+    });
+  }
+
+  // Выбор постройки
+  const buildBtns = document.querySelectorAll('#screen-build button[data-choice]');
+  buildBtns.forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const choice = e.target.dataset.choice;
+      const gamer = window.currentGame?.gamer;
+      const monster = window.currentGame?.monster;
+
+      if (!gamer) {
+        console.error('Состояние игры не инициализировано');
+        return;
+      }
+
+      window.currentGame.build = choice;
+
+      const storyEl = document.getElementById('story-wolf');
+      if (!storyEl) return;
+
+      if (choice === 'кровать') {
+        storyEl.textContent = `${gamer} построил кровать и лёг спать. Но ночью из тени вышел волк! Теперь нужно решить: приручить его или бежать.`;
+      } else if (choice === 'дом') {
+        storyEl.textContent = `${gamer} построил крепкий дом. Теперь монстр ему не страшен… но внезапно появляется волк! Приручить или бежать?`;
+      } else {
+        // ничего
+        storyEl.textContent = `${gamer} решил ничего не строить и сразу начал игру. Тут же из кустов выпрыгнул волк! Приручить или бежать?`;
+      }
+      showScreen('wolf');
+    });
+  });
+
+  // Волк
+  const wolfBtns = document.querySelectorAll('#screen-wolf button[data-choice]');
+  wolfBtns.forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const choice = e.target.dataset.choice;
+      const gamer = window.currentGame?.gamer;
+      const build = window.currentGame?.build;
+
+      if (!gamer) return;
+
+      window.currentGame.wolfChoice = choice;
+
+      const storyEl = document.getElementById('story-village');
+      if (!storyEl) return;
+
+      if (build === 'ничего' && choice === 'бежит') {
+        storyEl.textContent = `${gamer} пытался убежать от волка и случайно ударил его. Волк заагрился и начал бить героя! Но вдруг рядом оказался житель деревни. Он позвал големов. Големы прогнали волка, но теперь нужно быстро решить, как действовать дальше.`;
+      } else if (build === 'кровать' && choice === 'бежит') {
+        storyEl.textContent = `${gamer} выбежал из дома и побежал от волка. По пути он споткнулся и упал. Волк уже почти настиг его, но тут герой увидел деревню. Нужно быстро решить, что делать с жителем.`;
+      } else if (choice === 'приручает') {
+        storyEl.textContent = `${gamer} приручил волка, и теперь у него есть верный защитник. Вместе они добрались до деревни. Герой видит богатого жителя с изумрудами. Что делать?`;
+      } else {
+        storyEl.textContent = `${gamer} столкнулся с волком. Теперь он в деревне и видит жителя с изумрудами. Как поступить?`;
+      }
+      showScreen('village');
+    });
+  });
+
+  // Деревня и изумруды
+  const villageBtns = document.querySelectorAll('#screen-village button[data-choice]');
+  villageBtns.forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const choice = e.target.dataset.choice;
+      const gamer = window.currentGame?.gamer;
+
+      if (!gamer) return;
+
+      window.currentGame.villageChoice = choice;
+
+      const storyEl = document.getElementById('story-portal-armor');
+      if (!storyEl) return;
+
+      if (choice === 'отнимает') {
+        storyEl.textContent = `${gamer} попытался отнять изумруды у жителя. Это заметили големы! Они начали бить героя. Едва успев увернуться, ${gamer} понимает, что нужно срочно либо строить портал в ад, либо остаться в деревне и добыть броню, чтобы выжить.`;
+      } else {
+        // торгует
+        storyEl.textContent = `${gamer} договорился с жителем и наторговал 128 изумрудов. На них он купил 10 блоков обсидиана. Теперь перед ним выбор: построить портал в ад и испытать судьбу, или остаться в деревне, чтобы добыть золотую и алмазную броню.`;
+      }
+      showScreen('portalArmor');
+    });
+  });
+
+  // Портал или броня
+  const portalArmorBtns = document.querySelectorAll('#screen-portal-or-armor button[data-choice]');
+  portalArmorBtns.forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const choice = e.target.dataset.choice;
+      const gamer = window.currentGame?.gamer;
+      const monster = window.currentGame?.monster;
+      const build = window.currentGame?.build;
+      const wolfChoice = window.currentGame?.wolfChoice;
+      const villageChoice = window.currentGame?.villageChoice;
+
+      if (!gamer) return;
+
+      const storyFinalEl = document.getElementById('story-final');
+      if (!storyFinalEl) return;
+
+      let finalText = '';
+
+      if (choice === 'портал') {
+        if (villageChoice === 'отнимает') {
+          finalText = `${gamer} быстро построил портал и вошёл в Нижний мир. Там его сразу атаковали ифриты. А ещё он случайно задел пиглина, и тот позвал других. ${gamer} не смог защититься и респавнулся в другом месте. Попробуй другой путь!`;
+        } else {
+          // торговал
+          finalText = `${gamer} вошёл в портал с запасом обсидиана и изумрудов. В Нижнем мире он сражался с ифритами, но благодаря хорошей подготовке смог выжить и даже добыть незерит. Победа!`;
+        }
+      } else {
+        // остался в деревне
+        if (wolfChoice === 'приручает') {
+          finalText = `${gamer} остался в деревне, добыл алмазную броню и меч, а волк помогал ему отбиваться от монстров. Вместе они победили ${monster} и нашли элитры. Теперь ${gamer} может летать и исследовать мир. Победа!`;
+        } else {
+          // волк не приручён
+          finalText = `${gamer} добыл броню и мечи, но без волка ему было тяжело. ${monster} всё равно нашёл его, и пришлось сражаться в одиночку. В конце концов, ${gamer} победил, добыл элитры и стал непобедимым. Победа!`;
+        }
+      }
+
+      storyFinalEl.textContent = finalText;
+      showScreen('final');
+    });
+  });
+
+  // Рестарт
+  const btnRestart = document.getElementById('btn-restart');
+  if (btnRestart) {
+    btnRestart.addEventListener('click', () => {
+      const inputGamer = document.getElementById('input-gamer');
+      const inputMonster = document.getElementById('input-monster');
+      if (inputGamer) inputGamer.value = '';
+      if (inputMonster) inputMonster.value = '';
+      clearError('error-char-monster');
+      window.currentGame = null;
+      showScreen('start');
+    });
+  }
+</script>

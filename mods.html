@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <title>Моды и расширения — RCBaing</title>
+  <style>
+    :root {
+      --bg: #111114;
+      --panel: #1a1b26;
+      --text: #e0e0e4;
+      --blue: #00aaff;
+      --red: #ff4d4d;
+      --code-bg: #0f0f14;
+      --border: #2a2a35;
+    }
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: system-ui, Segoe UI, Roboto, Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      line-height: 1.6;
+    }
+
+    .top-bar {
+      padding: 1rem 2rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(0,0,0,0.5);
+    }
+    .logo {
+      font-weight: 700;
+      color: var(--blue);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+    .tag {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+    .tag.mod { background: #1a1a22; color: var(--red); }
+    .tag.minecraft { background: #1a2a1a; color: #8fc31f; }
+    .tag.rpg { background: #1a1a22; color: #ffd43b; }
+
+    main {
+      max-width: 960px;
+      margin: 2rem auto;
+      padding: 0 1.5rem;
+    }
+
+    h1 { color: #fff; font-size: 2.4rem; margin-bottom: 0.3rem; }
+    h2 { color: var(--blue); margin-top: 2.5rem; border-left: 4px solid var(--blue); padding-left: 0.8rem; }
+    h3 { color: #ddd; margin-top: 1.8rem; }
+    p { color: #ccc; margin-bottom: 1rem; }
+
+    /* Сетка карточек */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 1.2rem;
+      margin-top: 1.5rem;
+    }
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+    }
+    .card-title {
+      color: #fff;
+      font-weight: 700;
+      margin: 0 0 0.4rem 0;
+    }
+    .card-tags {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .card-desc { color: #aaa; font-size: 0.9rem; }
+
+    pre {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.2rem;
+      overflow-x: auto;
+      margin: 1.2rem 0;
+    }
+    code {
+      font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+      color: #fff;
+    }
+    .lang-badge {
+      position: absolute;
+      right: 12px;
+      top: 10px;
+      font-size: 0.75rem;
+      background: #222;
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: #888;
+    }
+
+    .btn-copy {
+      position: absolute;
+      right: 1rem;
+      top: 1rem;
+      background: transparent;
+      border: 1px solid var(--border);
+      color: #888;
+      padding: 0.4rem 0.8rem;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      transition: all 0.2s;
+    }
+    .btn-copy:hover {
+      border-color: var(--blue);
+      color: var(--blue);
+    }
+
+    footer {
+      padding: 2rem;
+      border-top: 1px solid var(--border);
+      text-align: center;
+      color: #666;
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+
+  <header class="top-bar">
+    <div class="logo">RCBaing: Моды</div>
+    <nav>
+      <span class="tag mod">Моды</span>
+      <span class="tag minecraft">Minecraft</span>
+      <span class="tag rpg">RPG</span>
+    </nav>
+  </header>
+
+  <main>
+    <h1>Моды и расширения</h1>
+    <p>
+      Готовые типы модов, шаблоны манифестов, примеры интеграции и идеи под твои проекты: Minecraft_graphic, RCB: Infinite World, RPG‑конструктор на SimplePy, админ‑панели в стиле RCBaing.
+    </p>
+
+    <section>
+      <h2>Типы модов под твои проекты</h2>
+      <div class="grid">
+        <article class="card">
+          <h3 class="card-title">Minecraft_graphic</h3>
+          <div class="card-tags">
+            <span class="tag minecraft">Minecraft</span>
+            <span class="tag">Графика</span>
+          </div>
+          <p class="card-desc">
+            Моды на шейдеры, текстуры, UI, упрощённые рендеры. Подходят для визуальных пранков и «админ‑панелей» с графическими эффектами.
+          </p>
+        </article>
+
+        <article class="card">
+          <h3 class="card-title">RCB: Infinite World</h3>
+          <div class="card-tags">
+            <span class="tag">RCB</span>
+            <span class="tag">World</span>
+          </div>
+          <p class="card-desc">
+            Новые механики, биомы, предметы, квесты. Интеграция с админ‑панелью: выдача предметов, телепортация, смена времени суток.
+          </p>
+        </article>
+
+        <article class="card">
+          <h3 class="card-title">Админ‑панель RCBaing</h3>
+          <div class="card-tags">
+            <span class="tag">Админка</span>
+            <span class="tag">UI</span>
+          </div>
+          <p class="card-desc">
+            UI‑моды: тёмная тема, сине‑красные акценты, быстрые команды, логи, счётчики, статусы. Для проектов типа RCB‑Pad++ и «Уютный уголок».
+          </p>
+        </article>
+
+        <article class="card">
+          <h3 class="card-title">RPG‑конструктор (SimplePy)</h3>
+          <div class="card-tags">
+            <span class="tag rpg">RPG</span>
+            <span class="tag">Python</span>
+          </div>
+          <p class="card-desc">
+            Модули для инвентаря, диалогов, квестов, сохранения прогресса. Подключаются как отдельные пакеты в RPG‑конструкторе.
+          </p>
+        </article>
+      </div>
+    </section>
+
+    <section>
+      <h2>Шаблон манифеста мода (JSON)</h2>
+      <p>
+        Используй этот JSON как <code>mod.json</code> в корне мода. Он поможет админкам и лаунчерам корректно отображать моды.
+      </p>
+      <pre>
+<span class="lang-badge">JSON</span>
+<code class="language-json">{
+  "id": "rcb.admin_panel_v2",
+  "name": "Админ‑панель RCBaing v2",
+  "version": "1.0.0",
+  "author": "Artelen",
+  "description": "Тёмная админ‑панель с сине‑красными акцентами, логами и быстрыми командами.",
+  "game": "RCB: Infinite World",
+  "dependencies": [
+    "simplepy_core"
+  ],
+  "entry": "main.py",
+  "tags": ["admin", "ui", "dark"],
+  "config": {
+    "theme": "dark_rcb",
+    "accent_color": "#ff4d4d"
+  }
+}</code></pre>
+      <button class="btn-copy" onclick="copyBlock(this)">Копировать</button>
+    </section>
+
+    <section>
+      <h2>Пример простого мода на Python (RPG‑конструктор)</h2>
+      <p>
+        Это модуль, который добавляет механику «дневника» в RPG‑конструктор. Его можно положить как <code>mods/diary_mod.py</code> и импортировать в игре.
+      </p>
+      <pre>
+<span class="lang-badge">Python</span>
+<code class="language-python">class DiaryMod:
+    def __init__(self):
+        self.entries = []
+        self.max_entries = 50
+
+    def add_entry(self, text):
+        if len(self.entries) >= self.max_entries:
+            self.entries.pop(0)
+        self.entries.append(text)
+
+    def get_entries(self):
+        return self.entries
+
+    def save(self, path="diary.json"):
+        import json
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(self.entries, f, ensure_ascii=False, indent=2)
+
+    def load(self, path="diary.json"):
+        import json
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                self.entries = json.load(f)
+        except FileNotFoundError:
+            self.entries = []</code></pre>
+      <button class="btn-copy" onclick="copyBlock(this)">Копировать</button>
+      <p>
+        Под твои проекты (например, «Уютный уголок») можно добавить: лунные циклы, прогресс печки, записи кота и т. п.
+      </p>
+    </section>
+
+    <section>
+      <h2>Мод для RCB: Infinite World (идея интеграции)</h2>
+      <p>
+        Пример, как мод может добавлять команду в админ‑панель:
+      </p>
+      <pre>
+<span class="lang-badge">Python (админка)</span>
+<code class="language-python"># В админ‑панели регистрируем команду из мода
+def register_mod_commands(admin_panel):
+    admin_panel.register_command(
+        name="give_item",
+        callback=lambda args: give_item(args[0], int(args[1])),
+        help="Выдать предмет игроку: give_item &lt;item_id&gt; &lt;count&gt;"
+    )
+    admin_panel.register_command(
+        name="set_time",
+        callback=lambda args: set_time(args[0]),
+        help="Установить время суток: set_time &lt;day|night|dusk&gt;"
+    )</code></pre>
+      <button class="btn-copy" onclick="copyBlock(this)">Копировать</button>
+    </section>
+
+    <section>
+      <h2>Как упаковать и подключить мод</h2>
+      <ol>
+        <li>Создай папку мода: <code>mods/my_mod_name/</code>.</li>
+        <li>Положи туда <code>mod.json</code> (манифест) и файлы мода.</li>
+        <li>Если это Python‑мод: основной файл укажи в <code>"entry": "main.py"</code>.</li>
+        <li>В лаунчере/админке добавь поиск модов в папке <code>mods/</code> по <code>mod.json</code>.</li>
+        <li>Загружай моды динамически: импортируй <code>main.py</code> или регистрируй команды/классы.</li>
+      </ol>
+      <p>
+        Для Minecraft‑стиля: моды часто упаковывают как <code>.jar</code> с <code>mcmod.info</code>, но для своих проектов (RCB, RPG‑конструктор) удобнее JSON‑манифесты и Python‑модули.
+      </p>
+    </section>
+
+
+  </main>
+
+  <footer>
+    Моды и расширения — документация для RCBaing. Для проектов ArtPlayHD и Artelen. © 2026
+  </footer>
+
+  <script>
+    function copyBlock(btn) {
+      const code = btn.parentElement.querySelector('code').textContent;
+      navigator.clipboard.writeText(code).then(() => {
+        const originalText = btn.innerText;
+        btn.innerText = 'Скопировано';
+        setTimeout(() => btn.innerText = originalText, 2000);
+      });
+    }
+  </script>
+</body>
+</html>
