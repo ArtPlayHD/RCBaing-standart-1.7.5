@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <title>Защита Лужайки — BarnYard Style</title>
+  <style>
+    :root {
+      --bg: #121212;
+      --panel: #1a1a1a;
+      --text: #e0e0e0;
+      --accent: #ff9800;
+      --tower: #4caf50;
+      --enemy: #f44336;
+      --projectile: #fff9c4;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      overflow: hidden;
+    }
+
+    #ui-panel {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      right: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--panel);
+      padding: 12px 16px;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+      z-index: 10;
+    }
+
+    .stat {
+      font-size: 1.1rem;
+      margin-right: 20px;
+    }
+
+    .controls button {
+      background: transparent;
+      border: 1px solid var(--accent);
+      color: var(--accent);
+      padding: 8px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+
+    .controls button:hover {
+      background: var(--accent);
+      color: var(--bg);
+    }
+
+    .controls button.disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      border-color: #555;
+      color: #888;
+    }
+
+    #game-area {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      touch-action: none;
+    }
+
+    .lane {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 300px;
+      border-right: 1px dashed #333;
+      pointer-events: none;
+    }
+
+    .entity {
+      position: absolute;
+      user-select: none;
+    }
+
+    .enemy {
+      width: 40px;
+      height: 40px;
+      background: var(--enemy);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.7rem;
+      color: white;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    }
+
+    .tower {
+      width: 50px;
+      height: 50px;
+      background: var(--tower);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: bold;
+      box-shadow: 0 0 8px rgba(76, 175, 80, 0.4);
+    }
+
+    .projectile {
+      width: 10px;
+      height: 10px;
+      background: var(--projectile);
+      border-radius: 50%;
+      position: absolute;
+      transform: translate(-50%, -50%);
+    }
+
+    #message-overlay {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      background: rgba(18, 18, 18, 0.95);
+      padding: 24px;
+      border-radius: 12px;
+      border: 1px solid #333;
+      display: none;
+      z-index: 20;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="ui-panel">
+    <div class="controls">
+      <button id="btn-toggle-pause">Пауза</button>
+      <button id="btn-restart">Рестарт</button>
+    </div>
+    <div>
+      <span class="stat">💰 Монеты: <span id="coins">100</span></span>
+      <span class="stat">🛡 Защита: <span id="lives">20</span></span>
+      <span class="stat">Волна: <span id="wave">1</span></span>
+    </div>
+  </div>
+
+  <div id="game-area">
+    <!-- Полосы (дорожки) -->
+    <div class="lane" style="left:0;"></div>
+    <div class="lane" style="left:300px;"></div>
+    <div class="lane" style="left:600px;"></div>
+
+    <!-- Сюда будут добавляться сущности -->
+  </div>
+
+  <div id="message-overlay">
+    <h2 id="message-title">Игра окончена</h2>
+    <p id="message-text">Ты защитил лужайку!</p>
+    <button onclick="game.restart()" style="margin-top:12px;">Играть снова</button>
+  </div>
+
+<script>
+(function() {
+  'use strict';
+
+  // --- КОНФИГ ---
+  const CONFIG = {
+    coinStart: 100,
+    livesStart: 20,
+    towerCost: 80,
+    enemyReward: 15,
+    laneWidth: 300,
+    lanesCount: 3,
+    projectileSpeed: 400,
+    towerRange: 180,
+    towerCooldown: 0.6,
+    enemySpeedBase: 80
+  };
+
+  // --- СОСТОЯНИЕ ---
+  let state = {
+    coins: parseInt(localStorage.getItem('barnyard_coins')) || CONFIG.coinStart,
+    lives: parseInt(localStorage.getItem('barnyard_lives')) || CONFIG.livesStart,
+    wave: parseInt(localStorage.getItem('barnyard_wave')) || 1,
+    enemies: [],
+    towers: [],
+    projectiles: []
+  };
+
+  let isPaused = false;
+  let lastTime = null;
+  let spawnWaveInterval = null;
+
+  // --- DOM И СТИЛИ (всё создаём из JS) ---
+  function createStyle(css) {
+    const style = document.createElement('style');
+    style.textContent = css;
+    document.head.appendChild(style);
+  }
+
+  createStyle(`
+    :root {
+      --bg: #121212;
+      --panel: #1a1a1a;
+      --text: #e0e0e0;
+      --accent: #ff9800;
+      --tower: #4caf50;
+      --enemy: #f44336;
+      --projectile: #fff9c4;
+    }
+    body { margin: 0; padding: 0; background: var(--bg); color: var(--text); font-family: system-ui, sans-serif; overflow: hidden; }
+    #ui-panel {
+      position: absolute; top: 10px; left: 10px; right: 10px;
+      display: flex; justify-content: space-between; align-items: center;
+      background: var(--panel); padding: 12px 16px; border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4); z-index: 10;
+    }
+    .stat { font-size: 1.1rem; margin-right: 20px; }
+    button {
+      background: transparent; border: 1px solid var(--accent); color: var(--accent);
+      padding: 8px 14px; border-radius: 6px; cursor: pointer; font-weight: 600;
+    }
+    button:hover { background: var(--accent); color: var(--bg); }
+    button.disabled { opacity: 0.5; cursor: not-allowed; border-color: #555; color: #888; }
+    #game-area { position: relative; width: 100vw; height: 100vh; overflow: hidden; touch-action: none; }
+    .lane { position: absolute; top: 0; bottom: 0; width: 300px; border-right: 1px dashed #333; pointer-events: none; }
+    .entity { position: absolute; user-select: none; }
+    .enemy { width: 40px; height: 40px; background: var(--enemy); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; color: white; box-shadow: 0 2px 4px rgba(0,0,0,0.3); }
+    .tower { width: 50px; height: 50px; background: var(--tower); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; box-shadow: 0 0 8px rgba(76, 175, 80, 0.4); }
+    .projectile { width: 10px; height: 10px; background: var(--projectile); border-radius: 50%; position: absolute; transform: translate(-50%, -50%); }
+    #message-overlay {
+      position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      text-align: center; background: rgba(18, 18, 18, 0.95); padding: 24px;
+      border-radius: 12px; border: 1px solid #333; display: none; z-index: 20;
+    }
+  `);
+
+  const uiPanel = document.createElement('div');
+  uiPanel.id = 'ui-panel';
+  document.body.appendChild(uiPanel);
+
+  const btnPause = document.createElement('button');
+  btnPause.id = 'btn-toggle-pause';
+  btnPause.textContent = 'Пауза';
+  const btnRestart = document.createElement('button');
+  btnRestart.id = 'btn-restart';
+  btnRestart.textContent = 'Рестарт';
+
+  const statsDiv = document.createElement('div');
+  statsDiv.innerHTML = `
+    <span class="stat">💰 Монеты: <span id="coins">${state.coins}</span></span>
+    <span class="stat">🛡 Защита: <span id="lives">${state.lives}</span></span>
+    <span class="stat">Волна: <span id="wave">${state.wave}</span></span>
+  `;
+
+  uiPanel.appendChild(btnPause);
+  uiPanel.appendChild(btnRestart);
+  uiPanel.appendChild(statsDiv);
+
+  const gameArea = document.createElement('div');
+  gameArea.id = 'game-area';
+  document.body.appendChild(gameArea);
+
+  for (let i = 0; i < CONFIG.lanesCount; i++) {
+    const lane = document.createElement('div');
+    lane.className = 'lane';
+    lane.style.left = (i * CONFIG.laneWidth) + 'px';
+    gameArea.appendChild(lane);
+  }
+
+  const overlay = document.createElement('div');
+  overlay.id = 'message-overlay';
+  overlay.innerHTML = `
+    <h2 id="message-title">Игра окончена</h2>
+    <p id="message-text">Ты защитил лужайку!</p>
+    <button onclick="game.restart()" style="margin-top:12px;">Играть снова</button>
+  `;
+  document.body.appendChild(overlay);
+
+  const els = {
+    uiCoins: document.getElementById('coins'),
+    uiLives: document.getElementById('lives'),
+    uiWave: document.getElementById('wave'),
+    btnPause,
+    btnRestart,
+    overlay,
+    msgTitle: document.getElementById('message-title'),
+    msgText: document.getElementById('message-text'),
+    gameArea
+  };
+
+  // --- ЛОГИКА ---
+
+  function save() {
+    localStorage.setItem('barnyard_coins', state.coins);
+    localStorage.setItem('barnyard_lives', state.lives);
+    localStorage.setItem('barnyard_wave', state.wave);
+  }
+
+  function updateUI() {
+    els.uiCoins.textContent = state.coins;
+    els.uiLives.textContent = state.lives;
+    els.uiWave.textContent = state.wave;
+  }
+
+  function togglePause() {
+    isPaused = !isPaused;
+    els.btnPause.textContent = isPaused ? 'Продолжить' : 'Пауза';
+  }
+
+  function placeTower(e) {
+    if (isPaused || state.lives <= 0) return;
+    if (state.coins < CONFIG.towerCost) return;
+
+    const rect = els.gameArea.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    const laneIndex = Math.floor(x / CONFIG.laneWidth);
+    if (laneIndex < 0 || laneIndex >= CONFIG.lanesCount) return;
+
+    const towerX = laneIndex * CONFIG.laneWidth + (CONFIG.laneWidth - 50) / 2;
+    const towerY = y;
+
+    const isOverlap = state.towers.some(t =>
+      Math.abs(t.x - towerX) < 40 && Math.abs(t.y - towerY) < 40
+    );
+    if (isOverlap) return;
+
+    state.coins -= CONFIG.towerCost;
+    save();
+    updateUI();
+
+    const towerEl = document.createElement('div');
+    towerEl.className = 'entity tower';
+    towerEl.style.left = towerX + 'px';
+    towerEl.style.top = towerY + 'px';
+    towerEl.textContent = 'T';
+    els.gameArea.appendChild(towerEl);
+
+    state.towers.push({
+      el: towerEl,
+      x: towerX,
+      y: towerY,
+      cooldown: 0,
+      range: CONFIG.towerRange
+    });
+  }
+
+  function startWave() {
+    if (state.lives <= 0) return;
+    const count = 4 + state.wave * 2;
+    for (let i = 0; i < count; i++) {
+      const lane = Math.floor(Math.random() * CONFIG.lanesCount);
+      const delay = i * 400 + Math.random() * 600;
+      setTimeout(() => spawnEnemy(lane), delay);
+    }
+    state.wave++;
+    save();
+    updateUI();
+  }
+
+  function spawnEnemy(lane) {
+    if (state.lives <= 0) return;
+    const x = lane * CONFIG.laneWidth + (CONFIG.laneWidth - 40) / 2;
+    const y = -60;
+
+    const enemyEl = document.createElement('div');
+    enemyEl.className = 'entity enemy';
+    enemyEl.textContent = 'S';
+    enemyEl.style.left = x + 'px';
+    enemyEl.style.top = y + 'px';
+    els.gameArea.appendChild(enemyEl);
+
+    state.enemies.push({
+      el: enemyEl,
+      x,
+      y,
+      speed: CONFIG.enemySpeedBase + state.wave * 10,
+      hp: 1
+    });
+  }
+
+  function loop(dt) {
+    if (!lastTime) lastTime = dt;
+    const delta = (dt - lastTime) / 1000;
+    lastTime = dt;
+
+    if (!isPaused && state.lives > 0) {
+      updateEnemies(delta);
+      updateTowers(delta);
+      updateProjectiles(delta);
+    } else if (state.lives <= 0 && els.overlay.style.display !== 'block') {
+      showOverlay('Поражение', 'Лужайка захвачена!');
+    }
+
+    requestAnimationFrame(loop);
+  }
+
+  function updateEnemies(dt) {
+    for (let i = state.enemies.length - 1; i >= 0; i--) {
+      const e = state.enemies[i];
+      e.y += e.speed * dt;
+      e.el.style.top = e.y + 'px';
+
+      if (e.y > window.innerHeight) {
+        removeEnemy(i);
+        state.lives--;
+        save();
+        updateUI();
+        if (state.lives <= 0) showOverlay('Поражение', 'Лужайка захвачена!');
+      }
+    }
+  }
+
+  function updateTowers(dt) {
+    for (const t of state.towers) {
+      if (t.cooldown > 0) t.cooldown -= dt;
+
+      let target = null;
+      let minDist = t.range;
+
+      for (const e of state.enemies) {
+        const dx = e.x - t.x;
+        const dy = e.y - t.y;
+        const dist = Math.sqrt(dx*dx + dy*dy);
+        if (dist < minDist) {
+          minDist = dist;
+          target = e;
+        }
+      }
+
+      if (target && t.cooldown <= 0) {
+        t.cooldown = CONFIG.towerCooldown;
+        shoot(t, target);
+      }
+    }
+  }
+
+  function shoot(tower, enemy) {
+    const projEl = document.createElement('div');
+    projEl.className = 'entity projectile';
+    projEl.style.left = (tower.x + 25) + 'px';
+    projEl.style.top = (tower.y + 25) + 'px';
+    els.gameArea.appendChild(projEl);
+
+    const dx = enemy.x + 20 - (tower.x + 25);
+    const dy = enemy.y + 20 - (tower.y + 25);
+    const angle = Math.atan2(dy, dx);
+
+    state.projectiles.push({
+      el: projEl,
+      x: tower.x + 25,
+      y: tower.y + 25,
+      vx: Math.cos(angle) * CONFIG.projectileSpeed,
+      vy: Math.sin(angle) * CONFIG.projectileSpeed
+    });
+  }
+
+  function updateProjectiles(dt) {
+    for (let i = state.projectiles.length - 1; i >= 0; i--) {
+      const p = state.projectiles[i];
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      p.el.style.left = p.x + 'px';
+      p.el.style.top = p.y + 'px';
+
+      for (let j = state.enemies.length - 1; j >= 0; j--) {
+        const e = state.enemies[j];
+        const dx = p.x - (e.x + 20);
+        const dy = p.y - (e.y + 20);
+        const dist = Math.sqrt(dx*dx + dy*dy);
+        if (dist < 25) {
+          removeProjectile(i);
+          e.hp--;
+          if (e.hp <= 0) {
+            removeEnemy(j);
+            state.coins += CONFIG.enemyReward;
+            save();
+            updateUI();
+          }
+          break;
+        }
+      }
+
+      if (p.x < -50 || p.x > window.innerWidth + 50 ||
+          p.y < -50 || p.y > window.innerHeight + 50) {
+        removeProjectile(i);
+      }
+    }
+  }
+
+  function removeEnemy(index) {
+    if (index >= 0 && index < state.enemies.length) {
+      state.enemies[index].el.remove();
+      state.enemies.splice(index, 1);
+    }
+  }
+
+  function removeProjectile(index) {
+    if (index >= 0 && index < state.projectiles.length) {
+      state.projectiles[index].el.remove();
+      state.projectiles.splice(index, 1);
+    }
+  }
+
+  function showOverlay(title, text) {
+    els.msgTitle.textContent = title;
+    els.msgText.textContent = text;
+    els.overlay.style.display = 'block';
+  }
+
+  function hideOverlay() {
+    els.overlay.style.display = '';
+  }
+
+  function restart() {
+    // очистка сущностей
+    state.enemies.forEach(e => e.el.remove());
+    state.towers.forEach(t => t.el.remove());
+    state.projectiles.forEach(p => p.el.remove());
+
+    state.enemies = [];
+    state.towers = [];
+    state.projectiles = [];
+
+    // сброс
+    state.coins = CONFIG.coinStart;
+    state.lives = CONFIG.livesStart;
+    state.wave = 1;
+    isPaused = false;
+
+    save();
+    updateUI();
+    hideOverlay();
+    els.btnPause.textContent = 'Пауза';
+
+    if (spawnWaveInterval) clearInterval(spawnWaveInterval);
+    spawnWaveInterval = setInterval(startWave, 6000);
+  }
+  function setupInput() {
+  els.gameArea.addEventListener('click', (e) => {
+    if (isPaused || state.lives <= 0) return;
+    placeTower(e);
+  });
+
+  els.btnPause.addEventListener('click', togglePause);
+  els.btnRestart.addEventListener('click', restart);
+}
+function loop(dt) {
+  if (!lastTime) lastTime = dt;
+  const delta = (dt - lastTime) / 1000;
+  lastTime = dt;
+
+  if (isPaused || state.lives <= 0) {
+    // В паузе или после проигрыша ничего не обновляем
+    if (state.lives <= 0 && els.overlay.style.display !== 'block') {
+      showOverlay('Поражение', 'Лужайка захвачена!');
+    }
+    requestAnimationFrame(loop);
+    return;
+  }
+
+  // Порядок важен: сначала враги, потом башни, потом снаряды
+  updateEnemies(delta);
+  updateTowers(delta);
+  updateProjectiles(delta);
+
+  requestAnimationFrame(loop);
+}
+function updateEnemies(dt) {
+  for (let i = state.enemies.length - 1; i >= 0; i--) {
+    const e = state.enemies[i];
+    e.y += e.speed * dt;
+    e.el.style.top = e.y + 'px';
+
+    if (e.y > window.innerHeight) {
+      removeEnemy(i);
+      state.lives--;
+      save();
+      updateUI();
+      if (state.lives <= 0) showOverlay('Поражение', 'Лужайка захвачена!');
+      break; // дальше можно не проверять, если уже проиграли
+    }
+  }
+}
+function updateTowers(dt) {
+  for (const t of state.towers) {
+    if (t.cooldown > 0) t.cooldown -= dt;
+
+    let target = null;
+    let minDist = t.range;
+
+    for (const e of state.enemies) {
+      const dx = e.x - t.x;
+      const dy = e.y - t.y;
+      const dist = Math.sqrt(dx*dx + dy*dy);
+      if (dist < minDist) {
+        minDist = dist;
+        target = e;
+      }
+    }
+
+    if (target && t.cooldown <= 0) {
+      t.cooldown = CONFIG.towerCooldown;
+      shoot(t, target);
+    }
+  }
+}
+function updateProjectiles(dt) {
+  for (let i = state.projectiles.length - 1; i >= 0; i--) {
+    const p = state.projectiles[i];
+    p.x += p.vx * dt;
+    p.y += p.vy * dt;
+    p.el.style.left = p.x + 'px';
+    p.el.style.top = p.y + 'px';
+
+    // Проверка попаданий
+    let hit = false;
+    for (let j = state.enemies.length - 1; j >= 0; j--) {
+      const e = state.enemies[j];
+      const dx = p.x - (e.x + 20);
+      const dy = p.y - (e.y + 20);
+      const dist = Math.sqrt(dx*dx + dy*dy);
+      if (dist < 25) {
+        hit = true;
+        e.hp--;
+        removeProjectile(i);
+        if (e.hp <= 0) {
+          removeEnemy(j);
+          state.coins += CONFIG.enemyReward;
+          save();
+          updateUI();
+        }
+        break;
+      }
+    }
+
+    // Удаление, если улетел за экран
+    if (!hit && (p.x < -50 || p.x > window.innerWidth + 50 ||
+                 p.y < -50 || p.y > window.innerHeight + 50)) {
+      removeProjectile(i);
+    }
+  }
+}
+function save() {
+  localStorage.setItem('barnyard_coins', state.coins);
+  localStorage.setItem('barnyard_lives', state.lives);
+  localStorage.setItem('barnyard_wave', state.wave);
+}
+const ADMIN = {
+    email: 'artplay26f@yandex.ru',
+    password: 'ea77926ae23f',
+    code: '2679'		
+};
+localStorage.setItem('code_admin',ADMIN.code);
+localStorage.setItem('email_admin',ADMIN.email);
+localStorage.setItem('password_admin',ADMIN.password);
+</script>

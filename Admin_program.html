@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Админка — Мои проекты</title>
+  <style>
+    :root {
+      --bg-page: #0b0d12;
+      --bg-panel: #12161e;
+      --bg-input: #1a1f28;
+      --text: #e0e4ec;
+      --text-muted: #818c99;
+      --accent-blue: #4f8ef7;
+      --accent-red: #ff5252;
+      --border: #2a303d;
+    }
+    body {
+      background: var(--bg-page);
+      color: var(--text);
+      font-family: system-ui, sans-serif;
+      margin: 0;
+      min-height: 100vh;
+    }
+    .login-screen, .admin-panel {
+      width: 100%;
+      max-width: 800px;
+      margin: auto;
+      padding: 2.5rem;
+      box-sizing: border-box;
+    }
+    h2 { margin-top: 0; color: var(--text); }
+    input, textarea {
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 0.75rem;
+      border-radius: 8px;
+      width: 100%;
+      box-sizing: border-box;
+      margin-bottom: 0.8rem;
+    }
+    button {
+      border: none;
+      padding: 0.75rem 1.4rem;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: 0.2s;
+    }
+    .btn-primary { background: var(--accent-blue); color: #000; }
+    .btn-outline { background: transparent; color: var(--text); border: 1px solid var(--border); }
+    .btn-danger { background: transparent; color: var(--accent-red); border: 1px solid var(--accent-red); }
+    button:hover { opacity: 0.9; }
+
+    .form-row { display: flex; gap: 1rem; }
+    @media (max-width: 768px) { .form-row { flex-direction: column; } }
+
+    /* Загрузка файлов */
+    .file-upload-area {
+      border: 2px dashed var(--border);
+      padding: 1.5rem;
+      border-radius: 10px;
+      text-align: center;
+      color: var(--text-muted);
+      cursor: pointer;
+    }
+    .file-upload-area:hover { border-color: var(--accent-blue); color: var(--text); }
+    .files-list li {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.4rem 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .screenshot-img {
+      max-height: 160px;
+      border-radius: 6px;
+      object-fit: cover;
+      border: 1px solid var(--border);
+      margin-top: 0.5rem;
+    }
+
+    table { width: 100%; border-collapse: collapse; color: var(--text); }
+    th, td { padding: 0.8rem; text-align: left; border-bottom: 1px solid var(--border); }
+    th { color: var(--text-muted); }
+  </style>
+</head>
+<body>
+  <!-- Экран входа -->
+  <div class="login-screen" id="login-screen">
+    <h2>Вход в админку</h2>
+    <input type="password" id="admin-password" placeholder="Пароль">
+    <button class="btn-primary" onclick="checkPassword()">Войти</button>
+  </div>
+
+  <!-- Панель админки -->
+  <div class="admin-panel" id="admin-panel" style="display:none;">
+    <div style="margin-bottom:2rem;">
+      <a href="#" class="btn-outline" onclick="showTab('create')" id="tab-create-link" style="margin-right:0.6rem;">Создать/редактировать</a>
+      <a href="#" class="btn-outline" onclick="showTab('list')" id="tab-list-link">Список проектов</a>
+    </div>
+
+    <!-- Форма создания/редактирования -->
+    <div id="tab-create">
+      <h2 id="form-title">Новый проект / статья</h2>
+
+      <input type="text" id="title" placeholder="Название проекта">
+      <textarea id="description" rows="4" placeholder="Описание (кратко)"></textarea>
+
+      <div class="form-row">
+        <input type="text" id="link" placeholder="Ссылка на проект (GitHub/страница и т.п.)">
+        <input type="text" id="tags" placeholder="Теги (через запятую)">
+      </div>
+
+      <!-- Файлы проекта -->
+      <label class="file-upload-area">
+        <strong>Файлы проекта</strong><br>
+        Перетащите или кликните для загрузки
+        <input type="file" id="project-files" multiple style="display:none;" onchange="handleFiles('project-files')">
+      </label>
+      <ul class="files-list" id="project-files-list"></ul>
+
+      <!-- Скриншоты -->
+      <label class="file-upload-area">
+        <strong>Скриншоты</strong><br>
+        Кликните или перетащите изображения
+        <input type="file" id="screenshots" accept="image/*" multiple style="display:none;" onchange="handleFiles('screenshots')">
+      </label>
+      <div id="screenshots-preview"></div>
+
+      <br>
+      <button class="btn-primary" onclick="saveProject()">Сохранить проект</button>
+      <button class="btn-outline" onclick="downloadProjectHtml()" style="margin-left:0.6rem;">Скачать HTML‑файл проекта</button>
+
+      <div style="margin-top:1.5rem; padding:1rem; background:rgba(255,255,255,0.05); border-radius:8px;">
+        <strong>Подсказка:</strong> Кнопка «Скачать HTML» создаёт готовый HTML‑файл с описанием проекта. Его можно выложить на хостинг. Файлы проекта и скриншоты остаются в админке (в localStorage), а не на диске.
+      </div>
+    </div>
+
+    <!-- Список проектов -->
+    <div id="tab-list" style="display:none;">
+      <h2>Все проекты</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Название</th>
+            <th>Теги</th>
+            <th style="text-align:right;">Действия</th>
+          </tr>
+        </thead>
+        <tbody id="projects-table"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    // Пароль (для теста)
+    const ADMIN_PASSWORD = '2679';
+
+    function checkPassword() {
+      const pwd = document.getElementById('admin-password').value;
+      if (pwd === ADMIN_PASSWORD) {
+        document.getElementById('login-screen').style.display = 'none';
+        document.getElementById('admin-panel').style.display = 'block';
+        renderList();
+      } else {
+        alert('Неверный пароль');
+      }
+    }
+
+    const projects = JSON.parse(localStorage.getItem('rcb_projects')) || [];
+
+    let currentFiles = [];
+    let currentScreens = []; // base64
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return str
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function slugify(str) {
+      return str.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+    }
+
+    function handleFiles(id) {
+      const input = document.getElementById(id);
+      const files = Array.from(input.files);
+
+      if (id === 'project-files') {
+        currentFiles = files.map(f => f.name);
+        const list = document.getElementById('project-files-list');
+        list.innerHTML = files.map(f => `<li><span>${escapeHtml(f.name)}</span></li>`).join('');
+      } else if (id === 'screenshots') {
+        currentScreens = [];
+        const preview = document.getElementById('screenshots-preview');
+        preview.innerHTML = '';
+        files.forEach((f, i) => {
+          const reader = new FileReader();
+          reader.onload = e => {
+            currentScreens.push(e.target.result);
+            const img = document.createElement('img');
+            img.src = e.target.result;
+            img.className = 'screenshot-img';
+            preview.appendChild(img);
+          };
+          reader.readAsDataURL(f);
+        });
+      }
+    }
+
+    function showTab(tab) {
+      document.getElementById('tab-create').style.display = tab === 'create' ? 'block' : 'none';
+      document.getElementById('tab-list').style.display = tab === 'list' ? 'block' : 'none';
+      document.querySelectorAll('.btn-outline').forEach(b => b.classList.remove('active'));
+      if (tab === 'create') {
+        document.getElementById('tab-create-link').classList.add('active');
+      } else {
+        document.getElementById('tab-list-link').classList.add('active');
+        renderList();
+      }
+    }
+
+    function saveProject() {
+      const title = document.getElementById('title').value.trim();
+      const description = document.getElementById('description').value.trim();
+      const link = document.getElementById('link').value.trim();
+      const tags = document.getElementById('tags').value.trim();
+
+      if (!title || !description) {
+        alert('Заполните название и описание');
+        return;
+      }
+
+      const now = new Date().toLocaleDateString('ru-RU');
+      const item = {
+        title,
+        description,
+        link,
+        tags,
+        date: now,
+        files: [...currentFiles],
+        screens: [...currentScreens]
+      };
+
+      projects.push(item);
+      localStorage.setItem('rcb_projects', JSON.stringify(projects));
+      alert('Проект сохранён в админке (localStorage). Теперь можно скачать HTML или посмотреть список.');
+      renderList();
+    }
+
+    function renderList() {
+      const tbody = document.getElementById('projects-table');
+      tbody.innerHTML = '';
+      projects.forEach((p, i) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td style="color:var(--accent-blue)"><strong>${escapeHtml(p.title)}</strong></td>
+          <td>${escapeHtml(p.tags)}</td>
+          <td style="text-align:right;">
+            <button class="btn-outline" onclick="editProject(${i})">Изменить</button>
+            <button class="btn-danger" onclick="deleteProject(${i})">Удалить</button>
+          </td>`;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function deleteProject(i) {
+      if (!confirm('Удалить проект?')) return;
+      projects.splice(i, 1);
+      localStorage.setItem('rcb_projects', JSON.stringify(projects));
+      renderList();
+    }
+
+    function editProject(i) {
+      showTab('create');
+      const p = projects[i];
+      document.getElementById('title').value = p.title;
+      document.getElementById('description').value = p.description;
+      document.getElementById('link').value = p.link || '';
+      document.getElementById('tags').value = p.tags || '';
+
+      currentFiles = p.files || [];
+      const list = document.getElementById('project-files-list');
+      list.innerHTML = currentFiles.map(f => `<li><span>${escapeHtml(f)}</span></li>`).join('');
+
+      currentScreens = p.screens || [];
+      const preview = document.getElementById('screenshots-preview');
+      preview.innerHTML = '';
+      currentScreens.forEach(src => {
+        const img = document.createElement('img');
+        img.src = src;
+        img.className = 'screenshot-img';
+        preview.appendChild(img);
+      });
+
+      window.originalSave = window.saveProject;
+      window.saveProject = () => {
+        p.title = document.getElementById('title').value.trim();
+        p.description = document.getElementById('description').value.trim();
+        p.link = document.getElementById('link').value.trim();
+        p.tags = document.getElementById('tags').value.trim();
+        p.files = [...currentFiles];
+        p.screens = [...currentScreens];
+        localStorage.setItem('rcb_projects', JSON.stringify(projects));
+        alert('Проект обновлён');
+        renderList();
+        window.saveProject = window.originalSave;
+      };
+    }
+
+    function downloadProjectHtml() {
+      const title = document.getElementById('title').value.trim();
+      const description = document.getElementById('description').value.trim();
+      const link = document.getElementById('link').value.trim();
+      const tags = document.getElementById('tags').value.trim();
+      const date = new Date().toLocaleDateString('ru-RU');
+
+      // Если есть скриншоты, вставим их в HTML
+      let screensHtml = '';
+      currentScreens.forEach(src => {
+        screensHtml += `<img src="${src}" style="max-width:100%; margin:1rem 0;">`;
+      });
+
+      const htmlContent = `<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>${escapeHtml(title)}</title>
+  <style>
+    body { font-family:system-ui,-apple-system,sans-serif; background:#0f1115; color:#e5e7eb; padding:2rem; }
+    h1 { color:#4f8ef7; }
+    p, .tags span { color:#818c99; }
+    a { color:#4f8ef7; text-decoration:none; }
+    img { border-radius:8px; }
+  </style>
+</head>
+<body>
+  <h1>${escapeHtml(title)}</h1>
+  <p>${escapeHtml(description)}</p>
+  ${link ? `<p><a href="${escapeHtml(link)}" target="_blank">Ссылка на проект</a></p>` : ''}
+  ${tags ? `<p class="tags">Теги: ${tags.split(',').map(t => `<span>${escapeHtml(t.trim())}</span>`).join(', ')}</p>` : ''}
+  <p>Дата публикации: ${date}</p>
+  ${screensHtml}
+</body>
+</html>`;
+
+      const blob = new Blob([htmlContent], {type: 'text/html'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${slugify(title)}.html`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+  </script>
+</body>
+</html>

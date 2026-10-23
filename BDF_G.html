@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Игры и гайды — Рукопись не горит!</title>
+  <style>
+    :root {
+      --bg: #0f0f17;
+      --card: #1a1a2e;
+      --accent: #00d2d3;
+      --accent2: #e94560;
+      --text: #e0e0e0;
+      --muted: #888;
+      --border: #2a2a3e;
+      --radius: 10px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+
+    /* ─── Шапка ─── */
+    header {
+      padding: 1rem 2rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      background: rgba(15, 15, 23, 0.92);
+      backdrop-filter: blur(8px);
+      z-index: 100;
+    }
+    h1 {
+      margin: 0;
+      font-size: 1.4rem;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    nav a {
+      color: var(--muted);
+      text-decoration: none;
+      margin-left: 1.2rem;
+      font-size: 0.95rem;
+      transition: color 0.2s;
+    }
+    nav a:hover, nav a.active { color: var(--accent); }
+
+    /* ─── Основной блок ─── */
+    main { padding: 2rem; max-width: 1100px; margin: 0 auto; }
+
+    /* ─── Поиск ─── */
+    .search-wrap {
+      position: relative;
+      max-width: 480px;
+      margin-bottom: 2.2rem;
+    }
+    .search-wrap input {
+      width: 100%;
+      padding: 0.75rem 1rem 0.75rem 2.6rem;
+      background: var(--card);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: var(--radius);
+      font-size: 0.95rem;
+      transition: border-color 0.2s;
+    }
+    .search-wrap input:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+    .search-wrap::before {
+      content: "🔍";
+      position: absolute;
+      left: 0.8rem;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 0.9rem;
+      opacity: 0.5;
+    }
+
+    /* ─── Заголовки секций ─── */
+    .section-title {
+      font-size: 1.3rem;
+      margin-bottom: 1.3rem;
+      border-left: 4px solid var(--accent);
+      padding-left: 0.8rem;
+    }
+
+    /* ─── Сетка карточек ─── */
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 1.4rem;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.3rem;
+      transition: transform 0.25s, border-color 0.25s, box-shadow 0.25s;
+      cursor: pointer;
+    }
+    .card:hover {
+      transform: translateY(-5px);
+      border-color: var(--accent);
+      box-shadow: 0 8px 24px rgba(0, 210, 211, 0.12);
+    }
+    .card h3 { margin: 0 0 0.5rem; font-size: 1.1rem; }
+    .card p { color: var(--muted); line-height: 1.45; margin: 0 0 0.8rem; font-size: 0.9rem; }
+    .card .tag {
+      display: inline-block;
+      font-size: 0.72rem;
+      padding: 0.2rem 0.6rem;
+      border-radius: 20px;
+      background: rgba(0, 210, 211, 0.12);
+      color: var(--accent);
+      margin-bottom: 0.6rem;
+    }
+    .btn {
+      display: inline-block;
+      background: var(--accent);
+      color: #000;
+      padding: 0.55rem 1.1rem;
+      border-radius: 7px;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 0.9rem;
+      border: none;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .btn:hover { background: #00b8b9; }
+    .btn.red { background: var(--accent2); }
+    .btn.red:hover { background: #d63a52; }
+
+    /* ─── Модальное окно ─── */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(4px);
+      z-index: 200;
+      justify-content: center;
+      align-items: center;
+      padding: 1rem;
+    }
+    .modal-overlay.active { display: flex; }
+    .modal {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      max-width: 600px;
+      width: 100%;
+      max-height: 85vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      animation: modalIn 0.3s ease;
+    }
+    @keyframes modalIn {
+      from { opacity: 0; transform: scale(0.92); }
+      to   { opacity: 1; transform: scale(1); }
+    }
+    .modal-header {
+      padding: 1rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .modal-header h2 { margin: 0; font-size: 1.15rem; }
+    .modal-close {
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-size: 1.6rem;
+      cursor: pointer;
+      line-height: 1;
+      padding: 0;
+      transition: color 0.2s;
+    }
+    .modal-close:hover { color: var(--accent2); }
+    .modal-body {
+      padding: 1.5rem;
+      overflow-y: auto;
+      flex: 1;
+    }
+
+    /* ─── Игровой канвас ─── */
+    .game-area {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.8rem;
+    }
+    canvas {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: #0a0a12;
+      max-width: 100%;
+      touch-action: none;
+    }
+    .game-stats {
+      display: flex;
+      gap: 1.5rem;
+      font-size: 0.95rem;
+      color: var(--muted);
+    }
+    .game-stats b { color: var(--accent); }
+
+    /* ─── Гайды: аккордеон ─── */
+    .guide-item {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      margin-bottom: 0.8rem;
+      overflow: hidden;
+    }
+    .guide-header {
+      padding: 1rem 1.3rem;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: background 0.2s;
+    }
+    .guide-header:hover { background: rgba(255,255,255,0.03); }
+    .guide-header h3 { margin: 0; font-size: 1rem; }
+    .guide-arrow { transition: transform 0.3s; color: var(--muted); }
+    .guide-item.open .guide-arrow { transform: rotate(90deg); }
+    .guide-body {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.35s ease;
+    }
+    .guide-item.open .guide-body { max-height: 400px; }
+    .guide-body-inner {
+      padding: 0 1.3rem 1rem;
+      color: var(--muted);
+      line-height: 1.55;
+      font-size: 0.92rem;
+    }
+
+    /* ─── Подвал ─── */
+    footer {
+      padding: 2rem;
+      text-align: center;
+      color: var(--muted);
+      border-top: 1px solid var(--border);
+      font-size: 0.88rem;
+    }
+
+    /* ─── Адаптив ─── */
+    @media (max-width: 600px) {
+      header { padding: 0.8rem 1rem; }
+      nav a { margin-left: 0.7rem; font-size: 0.85rem; }
+      main { padding: 1.2rem; }
+      .modal-body { padding: 1rem; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Рукопись не горит!</h1>
+    <nav>
+      <a href="BDF.html">Главная</a>
+      <a href="games-guide.html" class="active">Игры и гайды</a>
+      <a href="new-books.html">Книги</a>
+      <a href="admin.html">Админ</a>
+    </nav>
+  </header>
+
+  <main>
+    <div class="search-wrap">
+      <input type="text" id="gameSearch" placeholder="Поиск по играм и гайдам…">
+    </div>
+
+    <!-- ─── Мини-игры ─── -->
+    <h2 class="section-title">Мини-игры</h2>
+    <div class="cards-grid" id="gamesGrid"></div>
+
+    <!-- ─── Гайды ─── -->
+    <h2 class="section-title" style="margin-top:3rem;">Гайды</h2>
+    <div id="guidesList"></div>
+  </main>
+
+  <footer>
+    &copy; 2026 Рукопись не горит! — для разработчиков и игроков
+  </footer>
+
+  <!-- ─── Модальное окно ─── -->
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 id="modalTitle">Игра</h2>
+        <button class="modal-close" id="modalClose">&times;</button>
+      </div>
+      <div class="modal-body" id="modalBody"></div>
+    </div>
+  </div>
+
+  <script>
+    // ─── Данные ───
+    const games = [
+      { id: 'reaction', title: 'Реакция', tag: 'Кликер', desc: 'Проверь скорость реакции: кликай по кружкам как можно быстрее.' },
+      { id: 'memory',   title: 'Память',  tag: 'Карточки', desc: 'Найди все пары одинаковых карточек за минимум ходов.' },
+      { id: 'snake',    title: 'Змейка',  tag: 'Аркада', desc: 'Классическая змейка: ешь точки, не врезайся в себя.' },
+      { id: 'tictac',   title: 'Крестики-нолики', tag: 'Логика', desc: 'Сразись с компьютером на поле 3×3.' },
+    ];
+
+    const guides = [
+      { title: "Выживание в Minecraft: первые 3 дня", body: "День 1: собери дерево → верстак → деревянные инструменты. День 2: камень, печь, уголь, факелы. День 3: ферма пшеницы, загон для животных, кровать." },
+      { title: "Как построить ферму в Minecraft", body: "Вырой канал 9×9, поставь воду в центре, вспаши мотыгой, посади семена. Для автоматизации используй поршни и водяные потоки." },
+      { title: "Ад и Незер: полный гайд", body: "Портал: обсидиан 4×5, огниво. Ресурсы: незерит, кварц, светящийся камень. Опасности: гасты, ифриты, лавовые озёра. Броня обязательна." },
+      { title: "Редстоун-механика: основы", body: "Сигнал передаётся на 15 блоков. Повторитель усиливает и задерживает. Поршни толкают блоки. Липкий поршень возвращает блок обратно." },
+      { title: "RPG-механика на Python", body: "Класс Player: hp, level, xp. Система боя: damage = base + random(-2,2). Уровень растёт при xp >= level*100. Инвентарь — список словарей." },
+    ];
+
+    // ─── Рендер игр ───
+    const gamesGrid = document.getElementById('gamesGrid');
+    games.forEach(g => {
+      const div = document.createElement('div');
+      div.className = 'card';
+      div.innerHTML = `
+        <span class="tag">${g.tag}</span>
+        <h3>${g.title}</h3>
+        <p>${g.desc}</p>
+        <button class="btn" onclick="openGame('${g.id}')">Играть</button>
+      `;
+      gamesGrid.appendChild(div);
+    });
+
+    // ─── Рендер гайдов ───
+    const guidesList = document.getElementById('guidesList');
+    guides.forEach((g, i) => {
+      const div = document.createElement('div');
+      div.className = 'guide-item';
+      div.id = 'guide-' + i;
+      div.innerHTML = `
+        <div class="guide-header" onclick="toggleGuide(${i})">
+          <h3>${g.title}</h3>
+          <span class="guide-arrow">▶</span>
+        </div>
+        <div class="guide-body">
+          <div class="guide-body-inner">${g.body}</div>
+        </div>
+      `;
+      guidesList.appendChild(div);
+    });
+
+    function toggleGuide(i) {
+      document.getElementById('guide-' + i).classList.toggle('open');
+    }
+
+    // ─── Поиск ───
+    const searchInput = document.getElementById('gameSearch');
+    searchInput.addEventListener('input', () => {
+      const q = searchInput.value.toLowerCase();
+      // фильтр игр
+      [...gamesGrid.children].forEach(card => {
+        const text = card.textContent.toLowerCase();
+        card.style.display = text.includes(q) ? '' : 'none';
+      });
+      // фильтр гайдов
+      [...guidesList.children].forEach(item => {
+        const text = item.textContent.toLowerCase();
+        item.style.display = text.includes(q) ? '' : 'none';
+      });
+    });
+
+    // ─── Модальное окно ───
+    const overlay = document.getElementById('modalOverlay');
+    const modalTitle = document.getElementById('modalTitle');
+    const modalBody = document.getElementById('modalBody');
+    let activeGame = null;
+
+    function openGame(id) {
+      const game = games.find(g => g.id === id);
+      if (!game) return;
+      modalTitle.textContent = game.title;
+      modalBody.innerHTML = '';
+      overlay.classList.add('active');
+      if (id === 'reaction') startReactionGame(modalBody);
+      if (id === 'memory')   startMemoryGame(modalBody);
+      if (id === 'snake')    startSnakeGame(modalBody);
+      if (id === 'tictac')   startTicTacToe(modalBody);
+    }
+
+    function closeModal() {
+      overlay.classList.remove('active');
+      activeGame = null;
+      // очищаем все интервалы/таймауты игры
+      if (window._gameInterval) clearInterval(window._gameInterval);
+      if (window._gameTimeout) clearTimeout(window._gameTimeout);
+      modalBody.innerHTML = '';
+    }
+
+    document.getElementById('modalClose').addEventListener('click', closeModal);
+    overlay.addEventListener('click', e => { if (e.target === overlay) closeModal(); });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+    // ─── Игра 1: Реакция ───
+    function startReactionGame(container) {
+      container.innerHTML = `
+        <div class="game-area">
+          <div class="game-stats">Лучшее время: <b id="rxBest">—</b> мс</div>
+          <canvas id="rxCanvas" width="400" height="300"></canvas>
+          <p style="color:var(--muted);font-size:0.85rem;text-align:center" id="rxHint">Кликни, когда кружок появится</p>
+        </div>
+      `;
+      const canvas = document.getElementById('rxCanvas');
+      const ctx = canvas.getContext('2d');
+      const hint = document.getElementById('rxHint');
+      const bestEl = document.getElementById('rxBest');
+      let waiting = false, startTime = 0, best = null;
+
+      function drawBg(msg) {
+        ctx.fillStyle = '#0a0a12';
+        ctx.fillRect(0, 0, 400, 300);
+        ctx.fillStyle = '#555';
+        ctx.font = '16px system-ui';
+        ctx.textAlign = 'center';
+        ctx.fillText(msg, 200, 160);
+      }
+
+      function newRound() {
+        drawBg('Жди зелёный круг…');
+        const delay = 1000 + Math.random() * 2500;
+        window._gameTimeout = setTimeout(() => {
+          ctx.fillStyle = '#00d2d3';
+          ctx.beginPath();
+          ctx.arc(200, 150, 50, 0, Math.PI * 2);
+          ctx.fill();
+          startTime = performance.now();
+          waiting = true;
+        }, delay);
+      }
+
+      canvas.addEventListener('click', () => {
+        if (!waiting) {
+          if (startTime === 0) return; // до старта
+          hint.textContent = 'Рано! Кликни для новой попытки';
+          drawBg('Слишком рано!');
+          startTime = 0;
+          setTimeout(newRound, 1200);
+          return;
+        }
+        const time = Math.round(performance.now() - startTime);
+        waiting = false;
+        if (best === null || time < best) {
+          best = time;
+          bestEl.textContent = best;
+        }
+        ctx.fillStyle = '#0a0a12';
+        ctx.fillRect(0, 0, 400, 300);
+        ctx.fillStyle = '#00d2d3';
+        ctx.font = '28px system-ui';
+        ctx.textAlign = 'center';
+        ctx.fillText(time + ' мс', 200, 160);
+        hint.textContent = 'Кликни для новой попытки';
+        startTime = 0;
+        newRound = newRound;
+        canvas.addEventListener('click', function retry() {
+          canvas.removeEventListener('click', retry);
+          newRound();
+        }, { once: true });
+      });
+
+      newRound();
+    }
+
+    // ─── Игра 2: Память ───
+    function startMemoryGame(container) {
+      container.innerHTML = `
+        <div class="game-area">
+          <div class="game-stats">Ходов: <b id="memMoves">0</b> &nbsp; Пар найдено: <b id="memPairs">0</b>/6</div>
+          <div id="memGrid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;max-width:360px"></div>
+          <button class="btn" id="memReset">Заново</button>
+        </div>
+      `;
+      const grid = document.getElementById('memGrid');
+      const movesEl = document.getElementById('memMoves');
+      const pairsEl = document.getElementById('memPairs');
+      const emojis = ['🎮','🎲','🎯','🏆','🃏','🧩'];
+      let cards = [...emojis, ...emojis].sort(() => Math.random() - 0.5);
+      let flipped = [], matched = 0, moves = 0, lock = false;
+
+      function render() {
+        grid.innerHTML = '';
+        cards.forEach((emoji, i) => {
+          const btn = document.createElement('div');
+          btn.style.cssText = `
+            width:80px;height:80px;display:flex;align-items:center;justify-content:center;
+            font-size:2rem;cursor:pointer;border-radius:8px;
+            background:${flipped.includes(i) ? '#2a2a3e' : '#1a1a2e'};
+            border:2px solid ${matched > 0 && flipped.includes(i) && flipped.includes(i) ? '#00d2d3' : '#2a2a3e'};
+            transition:all 0.2s;
+          `;
+          btn.textContent = flipped.includes(i) ? emoji : '?';
+          btn.onclick = () => flip(i, emoji);
+          grid.appendChild(btn);
+        });
+      }
+
+      function flip(i, emoji) {
+        if (lock || flipped.includes(i)) return;
+        flipped.push(i);
+        render();
+        if (flipped.length === 2) {
+          moves++;
+          movesEl.textContent = moves;
+          lock = true;
+          const [a, b] = flipped;
+          if (cards[a] === cards[b]) {
+            matched++;
+            pairsEl.textContent = matched;
+            flipped = [];
+            lock = false;
+            if (matched === 6) setTimeout(() => alert('Победа! Ходов: ' + moves), 200);
+            render();
+          } else {
+            setTimeout(() => { flipped = []; lock = false; render(); }, 800);
+          }
+        }
+      }
+
+      document.getElementById('memReset').onclick = () => {
+        cards = [...emojis, ...emojis].sort(() => Math.random() - 0.5);
+        flipped = [], matched = 0, moves = 0, lock = false;
+        movesEl.textContent = 0; pairsEl.textContent = 0;
+        render();
+      };
+
+      render();
+    }
+
+    // ─── Игра 3: Змейка ───
+    function startSnakeGame(container) {
+      container.innerHTML = `
+        <div class="game-area">
+          <div class="game-stats">Счёт: <b id="snScore">0</b></div>
+          <canvas id="snCanvas" width="400" height="400"></canvas>
+          <p style="color:var(--muted);font-size:0.85rem">Стрелки или WASD. Пробел — пауза.</p>
+        </div>
+      `;
+      const canvas = document.getElementById('snCanvas');
+      const ctx = canvas.getContext('2d');
+      const scoreEl = document.getElementById('snScore');
+      const cell = 20, cols = 20;
+      let snake, dir, food, score, paused;
+
+      function reset() {
+        snake = [{x:10,y:10}];
+        dir = {x:1, y:0};
+        score = 0;
+        paused = false;
+        scoreEl.textContent = score;
+        placeFood();
+      }
+
+      function placeFood() {
+        food = {
+          x: Math.floor(Math.random() * cols),
+          y: Math.floor(Math.random() * cols)
+        };
+      }
+
+      function draw() {
+        ctx.fillStyle = '#0a0a12';
+        ctx.fillRect(0, 0, 400, 400);
+        // еда
+        ctx.fillStyle = '#e94560';
+        ctx.beginPath();
+        ctx.arc(food.x*cell + cell/2, food.y*cell + cell/2, cell/2 - 2, 0, Math.PI*2);
+        ctx.fill();
+        // змейка
+        ctx.fillStyle = '#00d2d3';
+        snake.forEach(s => ctx.fillRect(s.x*cell+1, s.y*cell+1, cell-2, cell-2));
+      }
+
+      function tick() {
+        if (paused) return;
+        const head = { x: snake[0].x + dir.x, y: snake[0].y + dir.y };
+        // стены
+        if (head.x < 0 || head.x >= cols || head.y < 0 || head.y >= cols) return gameOver();
+        // сам себя
+        if (snake.some(s => s.x === head.x && s.y === head.y)) return gameOver();
+        snake.unshift(head);
+        if (head.x === food.x && head.y === food.y) {
+          score++;
+          scoreEl.textContent = score;
+          placeFood();
+        } else {
+          snake.pop();
+        }
+        draw();
+      }
+
+      function gameOver() {
+        clearInterval(window._gameInterval);
+        ctx.fillStyle = 'rgba(0,0,0,0.7)';
+        ctx.fillRect(0, 0, 400, 400);
+        ctx.fillStyle = '#e94560';
+        ctx.font = '24px system-ui';
+        ctx.textAlign = 'center';
+        ctx.fillText('Game Over! Счёт: ' + score, 200, 200);
+        ctx.fillStyle = '#888';
+        ctx.font = '14px system-ui';
+        ctx.fillText('Кликни «Заново»', 200, 230);
+      }
+
+      // кнопка перезапуска
+      const btn = document.createElement('button');
+      btn.className = 'btn';
+      btn.textContent = 'Заново';
+      btn.onclick = () => {
+        reset();
+        draw();
+        clearInterval(window._gameInterval);
+        window._gameInterval = setInterval(tick, 120);
+      };
+      container.querySelector('.game-area').appendChild(btn);
+
+      function setDir(dx, dy) {
+        if (dir.x === -dx && dir.y === -dy) return; // нельзя развернуться
+        dir = { x: dx, y: dy };
+      }
+
+      function onKey(e) {
+        const k = e.key.toLowerCase();
+        if (k === 'arrowup' || k === 'w') setDir(0, -1);
+        if (k === 'arrowdown' || k === 's') setDir(0, 1);
+        if (k === 'arrowleft' || k === 'a') setDir(-1, 0);
+        if (k === 'arrowright' || k === 'd') setDir(1, 0);
+        if (k === ' ') paused = !paused;
+      }
+      document.addEventListener('keydown', onKey);
+      // снимаем слушатель при закрытии
+      const origClose = closeModal;
+      closeModal = function() {
+        document.removeEventListener('keydown', onKey);
+        origClose();
+      };
+      document.getElementById('modalClose').onclick = closeModal;
+
+      reset();
+      draw();
+      window._gameInterval = setInterval(tick, 120);
+    }
+
+    // ─── Игра 4: Крестики-нолики ───
+    function startTicTacToe(container) {
+      container.innerHTML = `
+        <div class="game-area">
+          <div class="game-stats" id="tttStatus">Твой ход (X)</div>
+          <div id="tttGrid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;max-width:240px"></div>
+          <button class="btn" id="tttReset">Заново</button>
+        </div>
+      `;
+      const grid = document.getElementById('tttGrid');
+      const status = document.getElementById('tttStatus');
+      let board, over;
+
+      function reset() {
+        board = Array(9).fill('');
+        over = false;
+        status.textContent = 'Твой ход (X)';
+        render();
+      }
+
+      function render() {
+        grid.innerHTML = '';
+        board.forEach((v, i) => {
+          const cell = document.createElement('div');
+          cell.style.cssText = `
+            width:74px;height:74px;display:flex;align-items:center;justify-content:center;
+            font-size:2.2rem;cursor:pointer;border-radius:8px;
+            background:#1a1a2e;border:2px solid #2a2a3e;transition:all 0.15s;
+          `;
+          cell.textContent = v;
+          if (!v && !over) cell.onmouseenter = () => cell.style.borderColor = '#00d2d3';
+          if (!v && !over) cell.onmouseleave = () => cell.style.borderColor = '#2a2a3e';
+          cell.onclick = () => move(i);
+          grid.appendChild(cell);
+        });
+      }
+
+      function move(i) {
+        if (board[i] || over) return;
+        board[i] = 'X';
+        if (checkWin('X')) { status.textContent = 'Ты выиграл!'; over = true; render(); return; }
+        if (board.every(c => c)) { status.textContent = 'Ничья!'; over = true; render(); return; }
+        // ход ПК
+        const empty = board.map((v,j) => v ? -1 : j).filter(j => j >= 0);
+        board[empty[Math.floor(Math.random()*empty.length)]] = 'O';
+        if (checkWin('O')) { status.textContent = 'Компьютер выиграл!'; over = true; render(); return; }
+        if (board.every(c => c)) { status.textContent = 'Ничья!'; over = true; render(); return; }
+        render();
+      }
+
+      function checkWin(p) {
+        const wins = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+        return wins.some(w => w.every(i => board[i] === p));
+      }
+
+      document.getElementById('tttReset').onclick = reset;
+      reset();
+    }
+  </script>
+</body>
+</html>

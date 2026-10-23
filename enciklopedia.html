@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Энциклопедия мира RCB</title>
+
+  <style>
+    :root {
+      --bg: #0f1115;
+      --panel: rgba(255, 255, 255, 0.06);
+      --border: rgba(255, 255, 255, 0.12);
+      --accent: #ff6b81;
+      --text: #ffffff;
+      --muted: #a0a0b0;
+      --glass: rgba(255, 255, 255, 0.08);
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      margin: 0;
+      padding: 20px;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .container {
+      max-width: 960px;
+      width: 100%;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      padding: 24px;
+      box-shadow: 0 16px 48px rgba(0, 0, 0, 0.4);
+    }
+
+    header { text-align: center; margin-bottom: 24px; }
+    h1 { margin: 0 0 8px; color: var(--text); }
+    p.subtitle { color: var(--muted); max-width: 500px; margin: 0 auto; }
+
+    .search-box {
+      position: relative;
+      max-width: 600px;
+      margin: 0 auto 24px;
+    }
+    .search-input {
+      width: 100%; padding: 12px 16px 12px 42px; background: rgba(0,0,0,0.3);
+      border: 1px solid var(--border); color: var(--text);
+      border-radius: 10px; font-size: 1rem; outline: none;
+    }
+    .search-input:focus { border-color: var(--accent); }
+    .search-icon {
+      position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
+      color: var(--muted); pointer-events: none; font-size: 1.1rem;
+    }
+
+    .filters {
+      display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-bottom: 24px;
+    }
+    .filter-btn {
+      background: transparent; border: 1px solid var(--border);
+      color: var(--text); padding: 8px 14px; border-radius: 6px;
+      cursor: pointer; transition: all 0.2s;
+    }
+    .filter-btn.active, .filter-btn:hover {
+      background: var(--glass); border-color: var(--accent); color: var(--accent);
+    }
+
+    .cards-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 18px;
+    }
+
+    .card {
+      background: rgba(20,20,30,0.6); border: 1px solid var(--border);
+      border-radius: 12px; padding: 16px; transition: transform 0.2s, box-shadow 0.2s;
+      cursor: pointer; display: flex; flex-direction: column; height: 100%;
+      position: relative;
+    }
+    .card:hover { transform: translateY(-4px); box-shadow: 0 8px 24px rgba(0,0,0,0.4); border-color: var(--accent); }
+
+    .card-type {
+      font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px;
+      color: var(--accent); margin-bottom: 8px; font-weight: bold;
+    }
+    .card h3 { margin: 0 0 8px; color: var(--text); font-size: 1.1rem; }
+    .card p { color: var(--muted); font-size: 0.9rem; line-height: 1.4; flex: 1; }
+    .card .meta {
+      margin-top: 12px; font-size: 0.8rem; color: var(--muted);
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .badge-user {
+      background: rgba(255,107,129,0.2); color: var(--accent);
+      padding: 2px 8px; border-radius: 4px; font-size: 0.7rem;
+    }
+    .badge-built {
+      background: rgba(255,255,255,0.08); color: var(--muted);
+      padding: 2px 8px; border-radius: 4px; font-size: 0.7rem;
+    }
+
+    .card-actions {
+      position: absolute; top: 10px; right: 10px; display: flex; gap: 6px;
+      opacity: 0; transition: opacity 0.2s;
+    }
+    .card:hover .card-actions { opacity: 1; }
+    .card-action-btn {
+      background: rgba(0,0,0,0.6); border: 1px solid var(--border);
+      color: var(--text); width: 28px; height: 28px; border-radius: 6px;
+      cursor: pointer; font-size: 0.85rem; display: flex; align-items: center; justify-content: center;
+    }
+    .card-action-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .card-action-btn.delete:hover { border-color: #ff4757; color: #ff4757; }
+
+    /* Модальное окно статьи */
+    #articleModal {
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.85); display: none;
+      align-items: center; justify-content: center; z-index: 1000;
+      padding: 16px; box-sizing: border-box;
+    }
+    .modal-content {
+      background: var(--panel); border: 1px solid var(--border);
+      border-radius: 16px; width: 100%; max-width: 720px; padding: 28px;
+      max-height: 90vh; overflow-y: auto;
+    }
+    .modal-close {
+      float: right; color: var(--muted); cursor: pointer; font-size: 1.4rem;
+      line-height: 1; margin-bottom: 16px;
+    }
+    .modal-title { margin: 0 0 12px; color: var(--text); }
+    .modal-body p { color: var(--text); line-height: 1.6; margin-bottom: 12px; }
+    .modal-tags { margin-top: 16px; display: flex; flex-wrap: wrap; gap: 8px; }
+    .tag {
+      background: rgba(255,255,255,0.08); border: 1px solid var(--border);
+      padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; color: var(--muted);
+    }
+    button.action-btn {
+      background: var(--accent); color: #000; border: none;
+      padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; margin-top: 12px;
+    }
+    button.action-btn.outline {
+      background: transparent; color: var(--accent); border: 1px solid var(--accent);
+    }
+
+    /* Модальное окно добавления/редактирования */
+    #editModal {
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.85); display: none;
+      align-items: center; justify-content: center; z-index: 1100;
+      padding: 16px; box-sizing: border-box;
+    }
+    .edit-content {
+      background: var(--panel); border: 1px solid var(--border);
+      border-radius: 16px; width: 100%; max-width: 600px; padding: 28px;
+      max-height: 90vh; overflow-y: auto;
+    }
+    .edit-content h2 { margin: 0 0 20px; }
+    label.edit-label { display: block; margin: 14px 0 6px; color: var(--muted); font-size: 0.9rem; }
+    .edit-input, .edit-select, .edit-textarea {
+      width: 100%; padding: 10px 14px; background: rgba(0,0,0,0.3);
+      border: 1px solid var(--border); color: var(--text);
+      border-radius: 8px; box-sizing: border-box; font-size: 1rem; font-family: inherit;
+    }
+    .edit-textarea { min-height: 120px; resize: vertical; }
+    .edit-input:focus, .edit-textarea:focus, .edit-select:focus { border-color: var(--accent); outline: none; }
+    .edit-actions { display: flex; gap: 12px; margin-top: 24px; }
+
+    .add-btn-fixed {
+      position: fixed; bottom: 30px; right: 30px;
+      width: 56px; height: 56px; border-radius: 50%;
+      background: var(--accent); color: #000; border: none;
+      font-size: 1.8rem; cursor: pointer; z-index: 500;
+      box-shadow: 0 8px 24px rgba(255,107,129,0.4);
+      display: flex; align-items: center; justify-content: center;
+      transition: transform 0.2s;
+    }
+    .add-btn-fixed:hover { transform: scale(1.1); }
+
+    .empty-state { text-align: center; padding: 40px; color: var(--muted); }
+
+    .stats-row {
+      display: flex; justify-content: center; gap: 20px; margin-bottom: 20px; flex-wrap: wrap;
+    }
+    .stat-pill {
+      background: rgba(255,255,255,0.06); border: 1px solid var(--border);
+      padding: 6px 14px; border-radius: 20px; font-size: 0.85rem; color: var(--muted);
+    }
+    .stat-pill b { color: var(--accent); }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Энциклопедия мира RCB</h1>
+      <p class="subtitle">Знания по вселенной RCB: существа, локации, механики, фракции и многое другое. Любой может добавить статью.</p>
+      <div class="stats-row" id="statsRow"></div>
+    </header>
+
+    <div class="search-box">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="encyclopediaSearch" class="search-input" placeholder="Искать: зомби, ферма, крипер, тактика, лор..." />
+    </div>
+
+    <div class="filters">
+      <button class="filter-btn active" onclick="setFilter('all')">Все</button>
+      <button class="filter-btn" onclick="setFilter('creature')">Существа</button>
+      <button class="filter-btn" onclick="setFilter('location')">Локации</button>
+      <button class="filter-btn" onclick="setFilter('mechanic')">Механики</button>
+      <button class="filter-btn" onclick="setFilter('faction')">Фракции</button>
+      <button class="filter-btn" onclick="setFilter('item')">Предметы</button>
+      <button class="filter-btn" onclick="setFilter('lore')">Лор</button>
+      <button class="filter-btn" onclick="setFilter('guide')">Руководства</button>
+    </div>
+
+    <div class="cards-grid" id="cardsGrid"></div>
+    <div class="empty-state" id="emptyState" style="display:none;">
+      <p>Ничего не найдено. Попробуйте изменить запрос или добавьте новую статью.</p>
+    </div>
+  </div>
+
+  <!-- Кнопка добавления -->
+  <button class="add-btn-fixed" onclick="openEditor()" title="Добавить статью">+</button>
+
+  <!-- Модальное окно статьи -->
+  <div id="articleModal">
+    <div class="modal-content">
+      <span class="modal-close" onclick="closeArticleModal()">&times;</span>
+      <div class="card-type" id="modalType"></div>
+      <h2 class="modal-title" id="modalTitle"></h2>
+      <div class="modal-body" id="modalBody"></div>
+      <div class="modal-tags" id="modalTags"></div>
+      <div style="display:flex; gap:12px; flex-wrap:wrap;">
+        <button class="action-btn" onclick="toggleBookmark()" id="bookmarkBtn">⭐ В закладки</button>
+        <button class="action-btn outline" onclick="editFromModal()">✏️ Редактировать</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Модальное окно добавления/редактирования -->
+  <div id="editModal">
+    <div class="edit-content">
+      <h2 id="editModalTitle">Новая статья</h2>
+      <span class="modal-close" onclick="closeEditor()" style="cursor:pointer; float:right; font-size:1.4rem; color:var(--muted);">&times;</span>
+
+      <label class="edit-label">Заголовок</label>
+      <input type="text" id="editTitle" class="edit-input" placeholder="Например: Тёмный лес РCB" />
+
+      <label class="edit-label">Категория</label>
+      <select id="editCategory" class="edit-select">
+        <option value="creature">Существо</option>
+        <option value="location">Локация</option>
+        <option value="mechanic">Механика</option>
+        <option value="faction">Фракция</option>
+        <option value="item">Предмет</option>
+        <option value="lore">Лор</option>
+        <option value="guide">Руководство</option>
+      </select>
+
+      <label class="edit-label">Краткое описание (для карточки)</label>
+      <input type="text" id="editSummary" class="edit-input" placeholder="Одно-два предложения..." />
+
+      <label class="edit-label">Полный текст статьи</label>
+      <textarea id="editContent" class="edit-textarea" placeholder="Подробное описание. Можно несколько абзацев..."></textarea>
+
+      <label class="edit-label">Теги (через запятую)</label>
+      <input type="text" id="editTags" class="edit-input" placeholder="лес, опасность, тьма" />
+
+      <div class="edit-actions">
+        <button class="action-btn" onclick="saveArticle()">Сохранить</button>
+        <button class="action-btn outline" onclick="closeEditor()">Отмена</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+  // Встроенная база знаний
+  const builtInKnowledge = [
+    {
+      id: 'zombie_village', type: 'creature', title: 'Зомби-апокалипсис: деревня',
+      summary: 'Деревня, захваченная зомби. Опасная зона с лутом и редкими предметами.',
+      content: 'В деревне зомби появляются волнами. Днём можно найти припасы, ночью — только бегство.\n\nГлавная угроза — зомби-гигант, который ломает стены. Рекомендуется зачищать деревню группой не менее трёх игроков.\n\nПосле зачистки в центре деревни появляется сундук с редкими ресурсами: алмазы, золото, зачарованные книги.',
+      tags: ['деревня', 'зомби', 'опасность', 'лут'],
+      builtIn: true
+    },
+    {
+      id: 'creeper_farm', type: 'location', title: 'Ферма криперов',
+      summary: 'Автоматизированная ферма для получения пороха и опыта.',
+      content: 'Ферма построена на редстоуне и поршнях. Криперы падают в воду и умирают, оставляя порох.\n\nЭффективная схема экономит часы ручного фарма. Для постройки нужно: 32 поршня, 16 повторителей, редстоун, вода.\n\nФерма работает только в тёмном помещении высотой 3 блока, чтобы криперы спавнились, но не видели игрока.',
+      tags: ['ферма', 'крипер', 'редстоун', 'автоматизация'],
+      builtIn: true
+    },
+    {
+      id: 'ant_legion_tactics', type: 'guide', title: 'Тактика Ant Legion: основы',
+      summary: 'Расстановка войск, прокачка и защита муравейника.',
+      content: 'Сначала укрепляй муравейник, затем собирай отряды.\n\nПротив летающих врагов используй стрелков. Против бронированных — тяжёлых муравьёв-солдат.\n\nНе забывай про разведку — отправляй лёгких муравьёв вперёд, чтобы узнать состав врага.\n\nОgolden rule: никогда не отправляй всех на атаку, всегда оставляй 30% на защите.',
+      tags: ['Ant Legion', 'тактика', 'стратегия', 'муравейник'],
+      builtIn: true
+    },
+    {
+      id: 'nfs_style', type: 'mechanic', title: 'Механика в стиле NFS Most Wanted',
+      summary: 'Дрифт, нитро, полицейские погони и система репутации.',
+      content: 'Нитро даёт резкий рывок. Дрифт накапливает очки, которые открывают новые машины.\n\nПолиция реагирует на скорость и агрессивное вождение. Уровень розыска повышается за столкновения и гонки на дорогах.\n\nСистема репутации влияет на доступные гонки и автомобили. Чем выше репутация — тем лучше машины, но и полиция агрессивнее.',
+      tags: ['NFS', 'механика', 'гонки', 'полиция'],
+      builtIn: true
+    },
+    {
+      id: 'rcb_faction_red', type: 'faction', title: 'Фракция «Красный Путь»',
+      summary: 'Агрессивная фракция, ориентированная на быстрые атаки.',
+      content: '«Красный Путь» использует быстрые юниты и ловушки. Их базы — это узлы контроля, а не крепости.\n\nСлабость — против дальнобойных атак и осадных орудий.\n\nЛидер фракции — командор Векс. Штаб-квартира расположена в кратере у вулкана.',
+      tags: ['фракция', 'RCB', 'агрессия', 'Векс'],
+      builtIn: true
+    },
+    {
+      id: 'rcb_faction_blue', type: 'faction', title: 'Фракция «Синий Щит»',
+      summary: 'Оборонительная фракция, мастер укреплений и дипломатии.',
+      content: '«Синий Щит» делает ставку на оборону и альянсы. Их крепости практически неприступны.\n\nСильная сторона — дипломатия: могут заключать перемирия с другими фракциями.\n\nСлабость — медленная экспансия и низкая мобильность.\n\nЛидер — советница Мирана. Штаб — башня на скале у моря.',
+      tags: ['фракция', 'RCB', 'оборона', 'дипломатия'],
+      builtIn: true
+    },
+    {
+      id: 'iron_golem_def', type: 'creature', title: 'Железный голем: защита деревни',
+      summary: 'Голем защищает жителей от враждебных мобов и игроков.',
+      content: 'Голема можно создать из железа и тыквы. Он атакует всех, кто нападает на жителей.\n\nВ RCB-моде голем может быть улучшен до «стального стража» — он быстрее, сильнее и имеет больше здоровья.\n\nДля улучшения нужно: 4 блока железа + тыква + алмаз (в центре блока).',
+      tags: ['голем', 'защита', 'Minecraft', 'стальной страж'],
+      builtIn: true
+    },
+    {
+      id: 'dark_forest', type: 'location', title: 'Тёмный лес РCB',
+      summary: 'Опасная локация с густым туманом и хищными растениями.',
+      content: 'Тёмный лес находится к северу от спавна. Внутри почти не видно из-за тумана.\n\nХищные лианы хватают игрока и наносят урон. Освещение не работает — факелы гаснут через 5 секунд.\n\nВ центре леса стоит заброшенный храм с сундуком. Но путь к нему охраняет Корень — босс уровня.',
+      tags: ['лес', 'опасность', 'босс', 'туман'],
+      builtIn: true
+    },
+    {
+      id: 'ancient_sword', type: 'item', title: 'Древний меч RCB',
+      summary: 'Легендарное оружие, наносящее дополнительный урон нежити.',
+      content: 'Древний меч можно найти только в заброшенном храме в Тёмном лесу.\n\nНаносит +50% урона нежити (зомби, скелеты, гасты). Имеет прочность 2000 — больше, чем у алмазного меча.\n\nПри зачаровании на «Огонь» получает эффект пурпурного пламени, который поджигает врагов на 5 секунд.',
+      tags: ['оружие', 'легендарное', 'нежить', 'храм'],
+      builtIn: true
+    },
+    {
+      id: 'redstone_guide', type: 'guide', title: 'Редстоун: основы автоматизации',
+      summary: 'Гайд по базовым схемам на редстоуне для начинающих.',
+      content: 'Редстоун — это электричество Minecraft. Основные компоненты:\n\n• Рычаг / кнопка — источник сигнала\n• Повторитель — усиливает и задерживает сигнал\n• Поршень — толкает блоки\n• Компаратор — сравнивает сигналы\n\nБазовая схема: рычаг → редстоун → поршень. Поршень толкает блок.\n\nДля автоматизации используйте наблюдатель (observer) — он реагирует на изменения блока перед ним.',
+      tags: ['редстоун', 'автоматизация', 'гайд', 'начинающим'],
+      builtIn: true
+    },
+    {
+      id: 'ender_dragon_rcb', type: 'creature', title: 'Дракон Края в RCB-моде',
+      summary: 'Усиленный босс с тремя фазами и новыми атаками.',
+      content: 'В RCB-моде дракон Края имеет три фазы:\n\nФаза 1 (100-66% HP): классические атаки, дыхание кислотой.\nФаза 2 (66-33%): призывает эндерменов-стражей, летает быстрее.\nФаза 3 (33-0%): стреляет залпами кристаллов, разрушает блоки вокруг.\n\nДля победы нужно уничтожить кристаллы на столбах, затем атаковать голову. В 3-й фазе кристаллы регенерируют за 30 секунд — нужно успеть.',
+      tags: ['дракон', 'босс', 'Край', 'RCB-мод'],
+      builtIn: true
+    },
+    {
+      id: 'rcb_lore_origin', type: 'lore', title: 'Лор: происхождение мира RCB',
+      summary: 'Как появилась вселенная RCB и кто такие Первые Строители.',
+      content: 'До мира RCB была Пустота — бесконечное серое пространство.\n\nПервые Строители — существа, умеющие создавать блоки из ничего. Они построили первые земли, oceans и горы. Когда Строители ушли, остались их инструменты — древние мечи, зелья и карты.\n\nКаждый игрок в RCB — потомок Первых Строителей. Поэтому все могут строить, копать и крафтить.',
+      tags: ['лор', 'происхождение', 'Строители', 'история'],
+      builtIn: true
+    },
+    {
+      id: 'crystal_caves', type: 'location', title: 'Кристальные пещеры',
+      summary: 'Подземные пещеры с самоцветами и редкими минералами.',
+      content: 'Кристальные пещеры находятся на глубине Y=11-30. Стены покрыты светящимися кристаллами.\n\nВ пещерах можно найти: алмазы, изумруды, лазурит, а также уникальный «RCB-кристалл» — материал для мощных зачарований.\n\nОпасность: в пещерах обитают кристальные пауки, которые появляются из стен. Они не боятся света.',
+      tags: ['пещеры', 'кристаллы', 'подземелье', 'лут'],
+      builtIn: true
+    },
+    {
+      id: 'potion_system', type: 'mechanic', title: 'Система зелий RCB',
+      summary: 'Расширенная алхимия с 12 новыми зельями и эффектами.',
+      content: 'RCB-мод добавляет 12 новых зелий:\n\n• Зелье левитации — поднимает в воздух на 10 секунд\n• Зелье каменной кожи — +50% сопротивления урону\n• Зелье тумана — ослепляет врагов в радиусе 5 блоков\n• Зелье ярости — двойной урон на 15 секунд\n• Зелье регенерации маны — восстанавливает ману\n• И другие...\n\nДля крафта нужен варочный стенд + RCB-кристалл как катализатор.',
+      tags: ['зелья', 'алхимия', 'механика', 'крафт'],
+      builtIn: true
+    },
+    {
+      id: 'space_station', type: 'location', title: 'Космическая станция RCB',
+      summary: 'Орбитальная база с невесомостью и уникальными ресурсами.',
+      content: 'Космическая станция доступна после крафта телепорта (нужно 8 обсидиана + RCB-кристалл).\n\nНа станции работает невесомость — игрок медленно падает, можно «летать» с помощью струи воды.\n\nРесурсы станции: лунный камень, звёздная пыль, обломки метеоритов. Из них крафтятся космические инструменты.',
+      tags: ['космос', 'станция', 'невесомость', 'ресурсы'],
+      builtIn: true
+    },
+    {
+      id: 'flower_alley', type: 'location', title: 'Аллея цветов',
+      summary: 'Мирная локация с редкими растениями и пчёлами.',
+      content: 'Аллея цветов — безопасная зона. Здесь не спавнятся враждебные мобы.\n\nМожно найти: орхидеи, подсолнухи, кусты сирени и уникальный «цветок RCB» — светится ночью.\n\nПчёлы в аллее производят особый мёд, который даёт эффект удачи на 5 минут.\n\nЛокация идеальна для отдыха и сбора ресурсов для крафта декора.',
+      tags: ['цветы', 'мирная', 'пчёлы', 'декор'],
+      builtIn: true
+    },
+    {
+      id: 'withering_event', type: 'lore', title: 'Великое Увядание',
+      summary: 'Катаклизм, уничтоживший половину мира RCB 1000 лет назад.',
+      content: 'Великое Увядание произошло 1000 лет назад. Мysterious чёрная плень начала распространяться по миру, уничтожая всё живое.\n\nУвядание остановили Первые Строители, создав барьер из чистого кристалла. Но часть мира осталась заражена — это ныне Тёмный лес.\n\nПосле Увядания появились мутанты: зомби-гиганты, кристальные пауки, эндермены-стражи.\n\nСчитается, что источник плени до сих пор где-то глубоко под землёй.',
+      tags: ['лор', 'катаклизм', 'плень', 'история'],
+      builtIn: true
+    },
+    {
+      id: 'rcb_faction_green', type: 'faction', title: 'Фракция «Зелёный Корень»',
+      summary: 'Фракция друидов и природных магов. Контролируют леса и пещеры.',
+      content: '«Зелёный Корень» — фракция, живущая в гармонии с природой. Их воины используют лозы и яды вместо мечей.\n\nСильная сторона: контроль территории через растительные ловушки и призыв лесных существ.\n\nСлабость: плохо справляются с огнём и взрывами.\n\nЛидер — друид Элден. Штаб — гигантское дерево в центре Тёмного леса.',
+      tags: ['фракция', 'дрuid', 'природа', 'лес'],
+      builtIn: true
+    },
+    {
+      id: 'enchanting_table_rcb', type: 'item', title: 'Стол зачарования RCB',
+      summary: 'Улучшенный стол зачарования с 6 новыми чарами.',
+      content: 'RCB-стол зачарования крафтится из обсидиана, RCB-кристалла и книги.\n\nНовые чары:\n• Жатва — автоматически собирает урожай\n• Гром — шанс ударить молнией при атаке\n• Туман — ослепляет врагов при ударе\n• Якорь — враг не может убежать 3 секунды\n• Лечение — восстанавливает HP при убийстве\n• Двойник — шанс создать копию стрелы при стрельбе\n\nДля чар нужны уровни опыта и RCB-кристаллы.',
+      tags: ['зачарование', 'чары', 'крафт', 'RCB-кристалл'],
+      builtIn: true
+    },
+    {
+      id: 'boss_root', type: 'creature', title: 'Босс: Корень',
+      summary: 'Древний страж Тёмного леса. Контролирует растения и яды.',
+      content: 'Корень — босс, обитающий в центре Тёмного леса. Выглядит как гигантское дерево с лицом.\n\nАтаки:\n• Удар лозой — наносит урон и отталкивает\n• Ядовитое облако — отравление 10 секунд\n• Призыв саженцев — появляются мелкие враги-растения\n• Корневая хватка — обездвиживает игрока на 3 секунды\n\nСлабое место — основание ствола. После победы выпадает Древний меч и 3 RCB-кристалла.',
+      tags: ['босс', 'Тёмный лес', 'растение', 'древний меч'],
+      builtIn: true
+    },
+    {
+      id: 'combat_system', type: 'mechanic', title: 'Боевая система RCB',
+      summary: 'Как работает урон, блокирование и комбо-атаки.',
+      content: 'Боевая система RCB расширяет ванильную:\n\n• Удар в прыжке — x2 урон\n• Комбо из 3 ударов — третий удар наносит +50% урона\n• Блокирование щитом — поглощает 80% урона, но щит перегревается на 2 секунды\n• Критический удар — шанс 15% нанести x3 урон\n• Усталость — после 5 ударов подряд скорость атаки падает на 30%\n\nСовет: чередуйте удары и блоки для максимальной эффективности.',
+      tags: ['бой', 'механика', 'урон', 'щит'],
+      builtIn: true
+    },
+    {
+      id: 'trading_system', type: 'guide', title: 'Торговля с жителями: гайд',
+      summary: 'Как эффективно торговать с жителями и получать лучшие цены.',
+      content: 'Жители в RCB имеют расширенный ассортимент:\n\n• Библиотекарь — продаёт зачарованные книги (включая RCB-чары)\n• Оружейник — продаёт оружие и ремонтирует его\n• Алхимик — продаёт зелья и ингредиенты\n• Картограф — продаёт карты на локации (Тёмный лес, Кристальные пещеры)\n\nЦены снижаются, если вылечить зомби-жителя (слабость + золотое яблоко).\n\nСовет: прокачайте репутацию в деревне до «Герой», чтобы цены упали на 30%.',
+      tags: ['торговля', 'жители', 'гайд', 'репутация'],
+      builtIn: true
+    },
+    {
+      id: 'rcb_faction_gold', type: 'faction', title: 'Фракция «Золотая Длань»',
+      summary: 'Торговая фракция. Контролируют рынки и караванные пути.',
+      content: '«Золотая Длань» — фракция торговцев и наёмников.\n\nСильная сторона: деньги. Могут нанимать NPC-стражей и покупать ресурсы у других фракций.\n\nСлабость: их собственные воины слабы в бою. Без наёмников уязвимы.\n\nЛидер — купец Грейн. Штаб — золотой рынок в центре карты.\n\nОсобенность: единственная фракция, которая может заключать сделки с любыми другими фракциями, даже враждебными.',
+      tags: ['фракция', 'торговля', 'наёмники', 'золото'],
+      builtIn: true
+    },
+    {
+      id: 'moon_stone', type: 'item', title: 'Лунный камень',
+      summary: 'Редкий материал с космической станции для мощных крафтов.',
+      content: 'Лунный камень добывается только на космической станции.\n\nИспользуется для крафта:\n• Космический шлем — защита от удушья\n• Гравитационные сапоги — снижение урона от падения до 0\n• Звёздный лук — стреляет светящимися стрелами\n• Портальный компас — показывает координаты любого измерения\n\nДля обработки нужен стол зачарования RCB и 3 единицы звёздной пыли.',
+      tags: ['предмет', 'космос', 'крафт', 'редкий'],
+      builtIn: true
+    },
+    {
+      id: 'weather_system', type: 'mechanic', title: 'Погодная система RCB',
+      summary: 'Динамическая погода, влияющая на геймплей и спавн мобов.',
+      content: 'RCB-мод добавляет динамическую погоду:\n\n• Гроза — зомби получают скорость +20%, криперы заряжаются чаще\n• Туман — видимость снижается до 15 блоков, спавнятся кристальные пауки\n• Метеоритный дождь — падают камни с неба, можно собрать звёздную пыль\n• Магнитная буря — редстоун ломается на 60 секунд, компасы не работают\n\nПогода меняется каждые 15-30 минут и влияет на все локации.',
+      tags: ['погода', 'механика', 'спавн', 'динамика'],
+      builtIn: true
+    },
+    {
+      id: 'rcb_lore_builders', type: 'lore', title: 'Первые Строители: кто они',
+      summary: 'Загадочные существа, создавшие мир RCB и оставившие артефакты.',
+      content: 'Первые Строители — не боги и не люди. По легенде, они пришли из другого измерения, которое разрушилось.\n\nИх было семеро. Каждый отвечал за свою часть мира:\n• Игнис — огонь и вулканы\n• Аква — океаны и реки\n• Терра — горы и равнины\n• Аэр — небо и облака\n• Люкс — свет и кристаллы\n• Умбра — тьма и пещеры\n• Вита — жизнь и растения\n\nПосле Великого Увядания семеро исчезли. Но их артефакты (Древний меч, RCB-кристаллы, карты) можно найти в мире до сих пор.',
+      tags: ['лор', 'Строители', 'артефакты', 'легенда'],
+      builtIn: true
+    }
+  ];
+
+  // Пользовательские статьи из localStorage
+  let userArticles = JSON.parse(localStorage.getItem('rcb_user_articles')) || [];
+  let bookmarks = JSON.parse(localStorage.getItem('rcb_encyclopedia_bookmarks')) || [];
+  let currentFilter = 'all';
+  let editingId = null;
+  let viewingId = null;
+
+  // Объединённая база
+  function getAllArticles() {
+    return [...builtInKnowledge, ...userArticles];
+  }
+
+  function renderCards() {
+    const grid = document.getElementById('cardsGrid');
+    const empty = document.getElementById('emptyState');
+    grid.innerHTML = '';
+
+    const query = document.getElementById('encyclopediaSearch').value.toLowerCase();
+    const all = getAllArticles();
+    const filtered = all.filter(item => {
+      const matchesFilter = currentFilter === 'all' || item.type === currentFilter;
+      const matchesQuery = !query ||
+        item.title.toLowerCase().includes(query) ||
+        item.summary.toLowerCase().includes(query) ||
+        (item.tags && item.tags.join(' ').toLowerCase().includes(query));
+      return matchesFilter && matchesQuery;
+    });
+
+    if (filtered.length === 0) {
+      empty.style.display = 'block';
+      grid.style.display = 'none';
+    } else {
+      empty.style.display = 'none';
+      grid.style.display = 'grid';
+    }
+
+    filtered.forEach(item => {
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.onclick = (e) => {
+        if (!e.target.closest('.card-actions')) openArticle(item);
+      };
+      const isBookmarked = bookmarks.includes(item.id);
+      const actions = item.builtIn ? '' : `
+        <div class="card-actions">
+          <button class="card-action-btn" onclick="event.stopPropagation(); openEditor('${item.id}')" title="Редактировать">✏️</button>
+          <button class="card-action-btn delete" onclick="event.stopPropagation(); deleteArticle('${item.id}')" title="Удалить">🗑</button>
+        </div>
+      `;
+      card.innerHTML = `
+        ${actions}
+        <div class="card-type">${item.type}</div>
+        <h3>${item.title}</h3>
+        <p>${item.summary}</p>
+        <div class="meta">
+          <span>${item.builtIn ? '<span class="badge-built">База</span>' : '<span class="badge-user">Пользователь</span>'}</span>
+          <span>${isBookmarked ? '⭐' : '○'}</span>
+        </div>
+      `;
+      grid.appendChild(card);
+    });
+
+    updateStats();
+  }
+
+  function updateStats() {
+    const all = getAllArticles();
+    const stats = document.getElementById('statsRow');
+    const counts = {};
+    all.forEach(a => { counts[a.type] = (counts[a.type] || 0) + 1; });
+    stats.innerHTML = `
+      <span class="stat-pill">Всего: <b>${all.length}</b></span>
+      <span class="stat-pill">Существа: <b>${counts.creature || 0}</b></span>
+      <span class="stat-pill">Локации: <b>${counts.location || 0}</b></span>
+      <span class="stat-pill">Фракции: <b>${counts.faction || 0}</b></span>
+      <span class="stat-pill">Лор: <b>${counts.lore || 0}</b></span>
+      <span class="stat-pill">В закладках: <b>${bookmarks.length}</b></span>
+    `;
+  }
+
+  function setFilter(type) {
+    document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+    event.target.classList.add('active');
+    currentFilter = type;
+    renderCards();
+  }
+
+  document.getElementById('encyclopediaSearch').addEventListener('input', renderCards);
+
+  function openArticle(item) {
+    viewingId = item.id;
+    document.getElementById('modalType').textContent = item.type;
+    document.getElementById('modalTitle').textContent = item.title;
+    document.getElementById('modalBody').innerHTML =
+      item.content.split('\n').map(p => p.trim() ? `<p>${p}</p>` : '').join('');
+    const tags = document.getElementById('modalTags');
+    tags.innerHTML = (item.tags || []).map(t => `<span class="tag">${t}</span>`).join('');
+
+    const bmBtn = document.getElementById('bookmarkBtn');
+    if (bookmarks.includes(item.id)) {
+      bmBtn.textContent = '⭐ В закладках';
+    } else {
+      bmBtn.textContent = '☆ В закладки';
+    }
+
+    // Скрываем кнопку «Редактировать» для встроенных статей
+    const editBtn = document.querySelector('#articleModal .action-btn.outline');
+    editBtn.style.display = item.builtIn ? 'none' : '';
+
+    document.getElementById('articleModal').style.display = 'flex';
+  }
+
+  function closeArticleModal() {
+    document.getElementById('articleModal').style.display = 'none';
+    viewingId = null;
+  }
+
+  function toggleBookmark() {
+    if (!viewingId) return;
+    if (bookmarks.includes(viewingId)) {
+      bookmarks = bookmarks.filter(id => id !== viewingId);
+      document.getElementById('bookmarkBtn').textContent = '☆ В закладки';
+    } else {
+      bookmarks.push(viewingId);
+      document.getElementById('bookmarkBtn').textContent = '⭐ В закладках';
+    }
+    localStorage.setItem('rcb_encyclopedia_bookmarks', JSON.stringify(bookmarks));
+    renderCards();
+  }
+
+  function openEditor(id) {
+    editingId = id || null;
+    document.getElementById('editModalTitle').textContent = id ? 'Редактировать статью' : 'Новая статья';
+
+    if (id) {
+      const item = userArticles.find(a => a.id === id);
+      if (!item) return;
+      document.getElementById('editTitle').value = item.title;
+      document.getElementById('editCategory').value = item.type;
+      document.getElementById('editSummary').value = item.summary;
+      document.getElementById('editContent').value = item.content;
+      document.getElementById('editTags').value = (item.tags || []).join(', ');
+    } else {
+      document.getElementById('editTitle').value = '';
+      document.getElementById('editCategory').value = 'creature';
+      document.getElementById('editSummary').value = '';
+      document.getElementById('editContent').value = '';
+      document.getElementById('editTags').value = '';
+    }
+
+    document.getElementById('editModal').style.display = 'flex';
+  }
+
+  function closeEditor() {
+    document.getElementById('editModal').style.display = 'none';
+    editingId = null;
+  }
+
+  function saveArticle() {
+    const title = document.getElementById('editTitle').value.trim();
+    const category = document.getElementById('editCategory').value;
+    const summary = document.getElementById('editSummary').value.trim();
+    const content = document.getElementById('editContent').value.trim();
+    const tagsStr = document.getElementById('editTags').value.trim();
+
+    if (!title || !summary || !content) {
+      alert('Заполните заголовок, описание и текст статьи.');
+      return;
+    }
+
+    const tags = tagsStr ? tagsStr.split(',').map(t => t.trim()).filter(Boolean) : [];
+
+    if (editingId) {
+      const idx = userArticles.findIndex(a => a.id === editingId);
+      if (idx !== -1) {
+        userArticles[idx] = { ...userArticles[idx], title, type: category, summary, content, tags };
+      }
+    } else {
+      const newArticle = {
+        id: 'user_' + Date.now(),
+        type: category,
+        title, summary, content, tags,
+        builtIn: false
+      };
+      userArticles.push(newArticle);
+    }
+
+    localStorage.setItem('rcb_user_articles', JSON.stringify(userArticles));
+    closeEditor();
+    renderCards();
+  }
+
+  function deleteArticle(id) {
+    if (!confirm('Удалить эту статью?')) return;
+    userArticles = userArticles.filter(a => a.id !== id);
+    localStorage.setItem('rcb_user_articles', JSON.stringify(userArticles));
+    renderCards();
+  }
+
+  function editFromModal() {
+    if (viewingId) {
+      closeArticleModal();
+      openEditor(viewingId);
+    }
+  }
+
+  // Инициализация
+  renderCards();
+</script>
+</body>
+</html>

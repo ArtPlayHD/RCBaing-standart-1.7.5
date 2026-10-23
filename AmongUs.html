@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <title>RCB: Among Patrol — Full</title>
+  <style>
+    :root {
+      --bg: #0b0c12;
+      --panel: #1a1b26;
+      --text: #e0e0e4;
+      --blue: #00aaff;
+      --red: #ff4d4d;
+      --yellow: #fbbf24;
+      --green: #4ade80;
+      --border: #2a2a35;
+      --warning: #ff9f1c;
+    }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: system-ui, Segoe UI, Roboto, sans-serif;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      user-select: none;
+    }
+
+    #hud {
+      position: absolute;
+      top: 1rem;
+      left: 1rem;
+      right: 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 10;
+    }
+    .stat-box {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+      background: rgba(0,0,0,0.5);
+      padding: 0.8rem 1.2rem;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+    }
+    .stat-label { font-size: 0.75rem; color: #aaa; text-transform: uppercase; letter-spacing: 0.5px; }
+    .stat-value { font-weight: 700; color: var(--blue); }
+    .bar-bg { height: 6px; background: #333; border-radius: 3px; overflow: hidden; margin-top: 0.3rem; }
+    .bar-fill { height: 100%; transition: width 0.1s, background 0.2s; }
+
+    #game-area {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+    }
+    canvas { display: block; width: 100%; height: 100%; }
+
+    #overlay {
+      position: absolute; inset: 0;
+      background: rgba(11,12,18,0.92);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 20;
+      text-align: center;
+    }
+    h1 { color: var(--blue); text-transform: uppercase; letter-spacing: 3px; margin: 0 0 1rem 0; font-size: 2rem; }
+    p { color: #aaa; max-width: 520px; line-height: 1.5; margin-bottom: 1.8rem; }
+    button.start-btn {
+      padding: 1rem 2.6rem;
+      font-size: 1.1rem;
+      background: var(--blue);
+      color: #000;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: 700;
+      box-shadow: 0 4px 16px rgba(0,170,255,0.35);
+    }
+    button.start-btn:hover { background: #00ccff; transform: scale(1.02); }
+    .controls-hint { font-size: 0.85rem; color: #666; margin-top: 0.6rem; }
+  </style>
+</head>
+<body>
+
+  <div id="hud">
+    <div class="stat-box">
+      <span class="stat-label">Задания выполнено</span>
+      <span class="stat-value" id="stat-tasks">0 / 5</span>
+    </div>
+    <div class="stat-box" style="text-align:right;">
+      <span class="stat-label" style="color:var(--yellow)">Патруль ботов</span>
+      <div class="bar-bg"><div id="bar-patrol" class="bar-fill" style="width:30%; background:var(--yellow)"></div></div>
+    </div>
+    <div class="stat-box">
+      <span class="stat-label">Статус</span>
+      <span class="stat-value" id="stat-status" style="color:var(--green)">Жив</span>
+    </div>
+  </div>
+
+
+<canvas id="gameCanvas" style="display:block; width:100vw; height:100vh; background:#0b0c12;"></canvas>
+
+
+
+    <div id="overlay">
+      <h1>RCB: AMONG PATROL — FULL</h1>
+      <p>Ты — член экипажа. Выполни 5 заданий, пока боты‑предатели не нашли тебя.<br>
+         Боты патрулируют коридоры и реагируют на близость. Если бот коснётся тебя — ты «убит».</p>
+      <p class="controls-hint">Управление: WASD / стрелки — ходить, мышь — смотреть/прицел</p>
+      <button class="start-btn" onclick="startGame()">Начать смену</button>
+    </div>
+  </div>
+
+  <script>
+  // among_rcb_core.js
+(function() {
+  'use strict';
+
+  const canvas = document.getElementById('gameCanvas');
+  if (!canvas) {
+    console.error('Не найден элемент #gameCanvas. Добавь <canvas id="gameCanvas"></canvas> в HTML.');
+    return;
+  }
+  const ctx = canvas.getContext('2d');
+
+  // --- Состояние ---
+  const state = {
+    player: { x: 0, y: 0, r: 14, color: '#00aaff', speed: 4 },
+    tasks: [],
+    bots: [],
+    completedTasks: 0,
+    gameActive: false,
+    keys: {},
+    mouse: { x: 0, y: 0 },
+    patrolLevel: 0.3,
+    walls: [],
+    saveKey: 'rcb_among_state'
+  };
+
+  // --- Ввод ---
+  window.addEventListener('keydown', e => state.keys[e.code] = true);
+  window.addEventListener('keyup', e => state.keys[e.code] = false);
+  window.addEventListener('mousemove', e => {
+    state.mouse.x = e.clientX;
+    state.mouse.y = e.clientY;
+  });
+
+  window.addEventListener('resize', resize);
+  function resize() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+  }
+  resize();
+
+  // --- Карта ---
+  function createMap() {
+    const w = canvas.width;
+    const h = canvas.height;
+    state.walls.length = 0;
+
+    // Центральная комната
+    state.walls.push({ x: w/2 - 240, y: h/2 - 160, w: 480, h: 320 });
+    // Коридоры
+    state.walls.push({ x: w/2 - 40, y: h/2 - 360, w: 80, h: 200 }); // вверх
+    state.walls.push({ x: w/2 - 40, y: h/2 + 160, w: 80, h: 200 }); // вниз
+    state.walls.push({ x: w/2 - 440, y: h/2 - 40, w: 200, h: 80 }); // лево
+    state.walls.push({ x: w/2 + 240, y: h/2 - 40, w: 200, h: 80 }); // право
+  }
+
+  // --- Задания ---
+  function spawnTasks() {
+    for (let i = 0; i < 5; i++) {
+      let placed = false;
+      while (!placed) {
+        const x = Math.random() * (canvas.width - 60) + 30;
+        const y = Math.random() * (canvas.height - 60) + 30;
+        if (!isCollidingWithWall(x, y, 20)) {
+          state.tasks.push({ x, y, r: 20, done: false });
+          placed = true;
+        }
+      }
+    }
+  }
+
+  // --- Боты ---
+  function spawnBots() {
+    const count = 3 + Math.floor(state.patrolLevel * 4);
+    for (let i = 0; i < count; i++) {
+      state.bots.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        r: 16,
+        color: '#ff4d4d',
+        speed: 2 + state.patrolLevel * 1.5
+      });
+    }
+  }
+
+  // --- Коллизии ---
+  function isCollidingWithWall(x, y, r) {
+    for (const wall of state.walls) {
+      if (x > wall.x - r && x < wall.x + wall.w + r &&
+          y > wall.y - r && y < wall.y + wall.h + r) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  // --- Логика движения ---
+  function movePlayer() {
+    const dx = (state.keys['KeyD'] || state.keys['ArrowRight']) - (state.keys['KeyA'] || state.keys['ArrowLeft']);
+    const dy = (state.keys['KeyS'] || state.keys['ArrowDown']) - (state.keys['KeyW'] || state.keys['ArrowUp']);
+
+    if (dx || dy) {
+      const nx = state.player.x + dx * state.player.speed;
+      const ny = state.player.y + dy * state.player.speed;
+
+      if (!isCollidingWithWall(nx, ny, state.player.r)) {
+        state.player.x = nx;
+        state.player.y = ny;
+      } else {
+        // Лёгкий отскок, чтобы не застревать
+        if (dx) {
+          const nx2 = state.player.x + dx * (state.player.speed / 2);
+          if (!isCollidingWithWall(nx2, state.player.y, state.player.r)) state.player.x = nx2;
+        }
+        if (dy) {
+          const ny2 = state.player.y + dy * (state.player.speed / 2);
+          if (!isCollidingWithWall(state.player.x, ny2, state.player.r)) state.player.y = ny2;
+        }
+      }
+    }
+  }
+
+  function updateBots() {
+    for (const bot of state.bots) {
+      const dx = bot.x - state.player.x;
+      const dy = bot.y - state.player.y;
+      const dist = Math.hypot(dx, dy);
+
+      if (dist > 1) {
+        bot.x -= (dx / dist) * bot.speed;
+        bot.y -= (dy / dist) * bot.speed;
+      }
+
+      // Не заходим в стены
+      if (isCollidingWithWall(bot.x, bot.y, bot.r)) {
+        bot.x += (dx / dist) * 2;
+        bot.y += (dy / dist) * 2;
+      }
+
+      // Столкновение с игроком
+      const d = Math.hypot(bot.x - state.player.x, bot.y - state.player.y);
+      if (d < bot.r + state.player.r) {
+        gameOver('Предатель нашёл тебя!');
+        return;
+      }
+    }
+  }
+
+  function checkTasks() {
+    for (const t of state.tasks) {
+      const d = Math.hypot(t.x - state.player.x, t.y - state.player.y);
+      if (d < t.r + state.player.r && !t.done) {
+        t.done = true;
+        state.completedTasks++;
+        state.patrolLevel = Math.min(1, state.patrolLevel + 0.15);
+        updateUI();
+      }
+    }
+  }
+
+  // --- UI (можно вызывать из админки) ---
+  function updateUI() {
+    const tasksEl = document.getElementById('stat-tasks');
+    const barEl = document.getElementById('bar-patrol');
+    if (tasksEl) tasksEl.textContent = state.completedTasks + ' / 5';
+    if (barEl) {
+      barEl.style.width = (state.patrolLevel * 100) + '%';
+      barEl.style.background = state.patrolLevel > 0.7 ? '#ff4d4d' : '#fbbf24';
+    }
+
+    if (state.completedTasks >= 5) {
+      winGame();
+    }
+  }
+
+  function gameOver(reason) {
+    state.gameActive = false;
+    const statusEl = document.getElementById('stat-status');
+    if (statusEl) {
+      statusEl.textContent = 'Мёртв';
+      statusEl.style.color = '#ff4d4d';
+    }
+    showOverlay('RCB: СМЕНА ЗАВЕРШЕНА', reason + '<br>Обнови страницу, чтобы начать заново.');
+  }
+
+  function winGame() {
+    state.gameActive = false;
+    const statusEl = document.getElementById('stat-status');
+    if (statusEl) {
+      statusEl.textContent = 'Победа';
+      statusEl.style.color = '#4ade80';
+    }
+    showOverlay('RCB: ЗАДАНИЯ ВЫПОЛНЕНЫ', 'Ты починил систему и избежал предателей. Отличная работа!<br>Обнови страницу, чтобы сыграть снова.');
+  }
+
+  function showOverlay(title, text) {
+    const overlay = document.getElementById('overlay');
+    if (!overlay) return;
+    overlay.querySelector('h1').textContent = title;
+    overlay.querySelector('p').innerHTML = text;
+    overlay.style.display = 'flex';
+    const btn = overlay.querySelector('button');
+    if (btn) btn.style.display = 'none';
+  }
+
+  // --- Отрисовка ---
+  function draw() {
+    ctx.fillStyle = '#0f111a';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Стены
+    ctx.fillStyle = '#1a1b26';
+    for (const w of state.walls) {
+      ctx.fillRect(w.x, w.y, w.w, w.h);
+    }
+
+    // Задания
+    for (const t of state.tasks) {
+      ctx.beginPath();
+      ctx.arc(t.x, t.y, t.r, 0, Math.PI*2);
+      ctx.fillStyle = t.done ? '#4ade80' : '#fbbf24';
+      ctx.fill();
+      if (!t.done) {
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      }
+    }
+
+    // Игрок
+    ctx.beginPath();
+    ctx.arc(state.player.x, state.player.y, state.player.r, 0, Math.PI*2);
+    ctx.fillStyle = state.player.color;
+    ctx.fill();
+
+    // Прицел
+    ctx.beginPath();
+    ctx.moveTo(state.player.x, state.player.y);
+    ctx.lineTo(state.mouse.x, state.mouse.y);
+    ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+    ctx.setLineDash([8,8]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Боты
+    for (const b of state.bots) {
+      ctx.beginPath();
+      ctx.arc(b.x, b.y, b.r, 0, Math.PI*2);
+      ctx.fillStyle = b.color;
+      ctx.fill();
+
+      const angle = Math.atan2(state.player.y - b.y, state.player.x - b.x);
+      const ex = b.x + Math.cos(angle) * 4;
+      const ey = b.y + Math.sin(angle) * 4;
+      ctx.beginPath();
+      ctx.arc(ex, ey, 3, 0, Math.PI*2);
+      ctx.fillStyle = '#fff';
+      ctx.fill();
+    }
+  }
+
+  // --- Сохранение ---
+  function saveState() {
+    try {
+      localStorage.setItem(state.saveKey, JSON.stringify({
+        completedTasks: state.completedTasks,
+        patrolLevel: state.patrolLevel
+      }));
+    } catch (e) { console.warn('Не удалось сохранить прогресс:', e); }
+  }
+
+  function loadState() {
+    try {
+      const data = localStorage.getItem(state.saveKey);
+      if (data) {
+        const parsed = JSON.parse(data);
+        state.completedTasks = parsed.completedTasks || 0;
+        state.patrolLevel = parsed.patrolLevel || 0.3;
+      }
+    } catch (e) { console.warn('Ошибка загрузки прогресса:', e); }
+  }
+
+  // --- Запуск ---
+  function startGame() {
+    createMap();
+    state.tasks = [];
+    state.bots = [];
+    spawnTasks();
+    spawnBots();
+
+    state.player.x = canvas.width / 2;
+    state.player.y = canvas.height / 2;
+
+    state.completedTasks = 0;
+    state.patrolLevel = 0.3;
+    state.gameActive = true;
+
+    updateUI();
+
+    const overlay = document.getElementById('overlay');
+    if (overlay) overlay.style.display = 'none';
+
+    loop();
+  }
+
+  function loop() {
+    if (!state.gameActive) return;
+
+    movePlayer();
+    updateBots();
+    checkTasks();
+
+    draw();
+
+    requestAnimationFrame(loop);
+  }
+
+  // Экспортируем для админок/панелей
+  window.RCB_Among = {
+    startGame,
+    loadState,
+    saveState,
+    state
+  };
+})();
+
+  </script>

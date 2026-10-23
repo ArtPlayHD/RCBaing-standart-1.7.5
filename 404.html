@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <title>404 — RCBaing</title>
+  <style>
+    :root {
+      --bg: #0a0a0a;
+      --panel: #121212;
+      --text: #e0e0e0;
+      --blue: #00aaff;
+      --red: #ff4d4d;
+      --border: #2a2a2a;
+    }
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: system-ui, Segoe UI, Roboto, Arial, sans-serif;
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Верхняя панель — как в админке */
+    .header-bar {
+      padding: 0.8rem 2rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(0,0,0,0.6);
+    }
+    .logo {
+      font-weight: 700;
+      color: var(--blue);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+    .status-badge {
+      background: #1a0000;
+      color: var(--red);
+      padding: 0.25rem 0.7rem;
+      border-radius: 4px;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+
+    main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 2rem;
+      text-align: center;
+    }
+
+    .error-code {
+      font-size: 8rem;
+      font-weight: 900;
+      line-height: 0.9;
+      color: #111;
+      text-shadow: 0 0 20px rgba(0, 170, 255, 0.3);
+      margin-bottom: 0.5rem;
+    }
+    @media (max-width: 640px) {
+      .error-code { font-size: 5rem; }
+    }
+
+    .error-title {
+      font-size: 2.2rem;
+      color: #fff;
+      margin: 0 0 0.5rem 0;
+      font-weight: 700;
+    }
+    .error-desc {
+      color: #aaa;
+      max-width: 560px;
+      line-height: 1.5;
+      margin-bottom: 2.5rem;
+    }
+
+    /* Блок поиска — чтобы сразу найти нужное */
+    .search-block {
+      width: 100%;
+      max-width: 480px;
+      position: relative;
+      margin-bottom: 3rem;
+    }
+    .search-input {
+      width: 100%;
+      padding: 1rem 1.2rem 1rem 3.2rem;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--panel);
+      color: var(--text);
+      font-size: 1rem;
+      outline: none;
+    }
+    .search-icon {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #666;
+    }
+    .search-btn {
+      position: absolute;
+      right: 8px;
+      top: 50%;
+      transform: translateY(-50%);
+      padding: 0.6rem 1.2rem;
+      background: var(--red);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .search-btn:hover { background: #cc0000; }
+
+    /* Кнопки действий */
+    .actions {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .btn {
+      padding: 0.8rem 1.4rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.2s;
+      text-decoration: none;
+      display: inline-block;
+      text-align: center;
+    }
+    .btn-primary {
+      background: var(--blue);
+      color: #000;
+      border: none;
+    }
+    .btn-primary:hover {
+      background: #0088cc;
+      box-shadow: 0 0 12px rgba(0,170,255,0.4);
+    }
+    .btn-secondary {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+    .btn-secondary:hover {
+      border-color: #666;
+      color: #ccc;
+    }
+
+    footer {
+      padding: 1rem 2rem;
+      border-top: 1px solid var(--border);
+      color: #555;
+      font-size: 0.85rem;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+  <header class="header-bar">
+    <div class="logo">RCBaing</div>
+    <div class="status-badge">ERROR 404</div>
+  </header>
+
+  <main>
+    <div class="error-code">404</div>
+    <h1 class="error-title">Этаж не найден</h1>
+    <p class="error-desc">
+      Кажется, ты провалился между уровнями или зашёл на несуществующий этаж.<br>
+      Не беда — давай вернёмся на знакомый маршрут или поищем нужное прямо здесь.
+    </p>
+
+    <!-- Встроенный мини-поиск -->
+    <div class="search-block">
+      <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="11" cy="11" r="8"></circle>
+        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+      </svg>
+      <input type="text" id="query" class="search-input" placeholder="Что ищем в RCBaing?.." autocomplete="off" />
+      <button type="button" class="search-btn" id="searchBtn">Найти</button>
+    </div>
+
+    <div class="actions">
+      <a href="index.html" class="btn btn-primary">На главную</a>
+      <a href="Search1.7.5.html" class="btn btn-secondary">Полный поиск</a>
+    </div>
+  </main>
+
+  <footer>
+    RCBaing © 2026 — Все этажи проверены, кроме несуществующих.
+  </footer>
+
+  <script>
+    // Простой поиск по списку страниц (можно заменить на fetch/JSON)
+    const index = [
+      { title: "Админ-панель RCBaing", path: "admin.html" },
+      { title: "Уютный уголок", path: "cozy.html" },
+      { title: "RCB: Infinite World", path: "infinite.html" },
+      { title: "RCB: World of Builders", path: "builders.html" },
+      { title: "Библиотека SimplePy 2.0", path: "simplepy.html" },
+      { title: "Arduino-проекты", path: "arduino.html" }
+    ];
+
+    function escapeHtml(str) {
+      return str.replace(/[&<>"]/g, s => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[s]));
+    }
+
+    document.getElementById('searchBtn').addEventListener('click', doSearch);
+    document.getElementById('query').addEventListener('keydown', e => {
+      if (e.key === 'Enter') doSearch();
+    });
+
+    function doSearch() {
+      const q = document.getElementById('query').value.trim().toLowerCase();
+      if (!q) return;
+
+      const matches = index.filter(item =>
+        item.title.toLowerCase().includes(q)
+      );
+
+      if (matches.length === 0) {
+        alert('Ничего не найдено по запросу «' + escapeHtml(q) + '». Попробуй на странице полного поиска.');
+        return;
+      }
+
+      // Переходим на первую найденную страницу
+      location.href = matches[0].path;
+    }
+  </script>
+</body>
+</html>

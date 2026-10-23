@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <title>Админ‑панель RCBaing (с сохранением пароля)</title>
+  <style>
+    :root {
+      --bg: #121212;
+      --panel: #1a1a1a;
+      --text: #e0e0e0;
+      --accent: #ff9800;
+      --input-bg: #222;
+      --border: #333;
+      --danger: #ff5555;
+      --success: #4caf50;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      margin: 0; padding: 0; background: var(--bg); color: var(--text);
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, "Helvetica Neue", Arial, sans-serif;
+      overflow: hidden;
+    }
+    h1, h2, h3 { margin-bottom: 12px; }
+    label { display: block; margin-bottom: 6px; font-size: 0.9rem; color: #aaa; }
+    input {
+      width: 100%; padding: 10px; background: var(--input-bg);
+      border: 1px solid var(--border); border-radius: 6px; color: white; outline: none;
+    }
+    input:focus { border-color: var(--accent); }
+    button {
+      width: 100%; padding: 12px; background: transparent;
+      border: 1px solid var(--accent); color: var(--accent);
+      border-radius: 6px; cursor: pointer; font-weight: 600; transition: all 0.2s;
+    }
+    button:hover { background: var(--accent); color: var(--bg); }
+    button.danger { color: var(--danger); border-color: var(--danger); }
+    button.danger:hover { background: var(--danger); color: white; }
+    button.success { color: var(--success); border-color: var(--success); }
+    button.success:hover { background: var(--success); color: var(--bg); }
+
+    .container {
+      display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh;
+    }
+    #login-screen, #admin-panel {
+      position: absolute; top: 0; left: 0; width: 100vw; height: 100vh;
+      background: var(--panel); padding: 40px; box-sizing: border-box;
+      display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 1000;
+    }
+    #admin-panel { display: none; }
+
+    .admin-header {
+      display: flex; justify-content: space-between; align-items: center;
+      width: 100%; margin-bottom: 24px; border-bottom: 1px solid #333; padding-bottom: 16px;
+    }
+    .status-badge {
+      padding: 6px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: bold;
+    }
+    .status-on { background: var(--success); color: white; }
+    .status-off { background: var(--danger); color: white; }
+
+    .controls-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; width: 100%;
+    }
+    .control-card {
+      background: #222; padding: 16px; border-radius: 8px; border: 1px solid #333;
+    }
+    .control-title { margin: 0 0 12px 0; color: var(--accent); }
+    pre {
+      background: #111; padding: 8px; border-radius: 6px; max-height: 200px;
+      overflow-y: auto; color: #0f0; font-size: 0.75rem; margin-top: 8px; white-space: pre-wrap;
+    }
+    .lock-notice {
+      color: var(--danger); margin-top: 12px; font-size: 0.9rem; text-align: center; display: none;
+    }
+  </style>
+</head>
+<body>
+
+
+
+
+  <!-- Экран входа -->
+  <div id="login-screen" class="container">
+    <h1>Админ‑панель RCBaing</h1>
+    <div style="width: 320px;">
+      <div class="form-group">
+        <label>Почта</label>
+        <input type="email" id="inp-email" placeholder="admin@rcbaing.local" />
+      </div>
+      <div class="form-group">
+        <label>Пароль</label>
+        <input type="password" id="inp-password" placeholder="Пароль" />
+      </div>
+      <div class="form-group">
+        <label>Код подтверждения</label>
+        <input type="text" id="inp-code" maxlength="4" placeholder="XXXX" />
+      </div>
+      <button id="btn-login" onclick="adminLogin()">Войти</button>
+      <div class="lock-notice" id="lock-notice">Вход заблокирован на 30 секунд из‑за частых ошибок.</div>
+    </div>
+  </div>
+
+  <!-- Админ‑панель -->
+  <div id="admin-panel">
+    <div class="admin-header">
+      <h2>Админ‑панель</h2>
+      <button onclick="adminLogout()">Выйти</button>
+    </div>
+
+    <div style="text-align:center; margin-bottom:24px;">
+      <span class="status-badge status-on" id="site-status">САЙТ ВКЛЮЧЁН</span>
+    </div>
+
+    <div class="controls-grid">
+
+      <!-- Режим страницы (СТРОЙКА / обычный / демо) -->
+      <div class="control-card">
+        <h3 class="control-title">Режим страницы</h3>
+        <p>Переключай режим без правки кода.</p>
+        <label>Режим:</label>
+        <select id="inp-page-mode" onchange="setPageMode()">
+          <option value="normal">Обычный режим</option>
+          <option value="maintenance">СТРОЙКА (заглушка)</option>
+          <option value="demo">Демо‑режим (только чтение)</option>
+        </select>
+        <div style="margin-top:12px; font-size:0.85rem; color:#aaa;">
+          При выборе «СТРОЙКА» на главной будет показан экран «СТРОЙКА».
+        </div>
+      </div>
+
+      <!-- Управление флагами -->
+      <div class="control-card">
+        <h3 class="control-title">Управление флагами</h3>
+        <p>Вкл/выкл произвольные функции по ключам.</p>
+        <input type="text" id="inp-flag-key" placeholder="Ключ (например: debug_mode)" />
+        <label style="display:flex; align-items:center; gap:8px; margin-top:8px;">
+          <input type="checkbox" id="inp-flag-value" /> Включить
+        </label>
+        <button class="success" onclick="setFlag()">Установить флаг</button>
+        <pre id="flags-list" style="margin-top:12px; color:#0f0; font-size:0.75rem;"></pre>
+      </div>
+
+      <!-- Подмена текста -->
+      <div class="control-card">
+        <h3 class="control-title">Подмена текста</h3>
+        <p>Заменить все вхождения строки на другую (по всему DOM).</p>
+        <input type="text" id="inp-replace-from" placeholder="Что искать" />
+        <input type="text" id="inp-replace-to" placeholder="На что заменить" />
+        <button class="success" onclick="replaceText()">Заменить текст</button>
+      </div>
+
+      <!-- Редиректы и заглушки -->
+      <div class="control-card">
+        <h3 class="control-title">Редиректы и заглушки</h3>
+        <p>Установить редирект или включить заглушку.</p>
+        <input type="text" id="inp-redirect-url" placeholder="/farm.html" />
+        <label style="margin-top:8px;">
+          <input type="checkbox" id="chk-enable-redirect" /> Включить редирект
+        </label>
+        <br>
+        <label>
+          <input type="checkbox" id="chk-show-maintenance" /> Показать «На обслуживании»
+        </label>
+        <button class="success" onclick="saveRedirects()">Сохранить настройки</button>
+      </div>
+
+      <!-- Настройка стилей (CSS‑переменные) -->
+      <div class="control-card">
+        <h3 class="control-title">Настройка стилей</h3>
+        <p>Изменить CSS‑переменные (цвета, размеры и т.п.).</p>
+        <input type="text" id="inp-css-var" placeholder="--font-size-base" />
+        <input type="text" id="inp-css-value" placeholder="18px" />
+        <button class="success" onclick="setCssVar()">Применить стиль</button>
+      </div>
+
+      <!-- Обзор и очистка localStorage -->
+      <div class="control-card">
+        <h3 class="control-title">Обзор localStorage</h3>
+        <p>Показать всё и очистить полностью.</p>
+        <button onclick="showAllStorage()">Показать всё</button>
+        <pre id="all-storage-output" style="color:#0f0; margin-top:8px; max-height:2000px; overflow-y:auto; font-size:0.7rem;"></pre>
+        <button class="danger" style="margin-top:12px;" onclick="clearAllStorage()">Очистить ВСЁ (осторожно!)</button>
+      </div>
+
+      <!-- Сброс ключей по префиксу -->
+      <div class="control-card">
+        <h3 class="control-title">Сброс ключей по префиксу</h3>
+        <p>Удалить все ключи, начинающиеся с заданного префикса.</p>
+        <button class="danger" onclick="resetKeysByPrefix()">Сброс по префиксу</button>
+      </div>
+
+      <!-- Информация о странице -->
+      <div class="control-card">
+        <h3 class="control-title">Информация о странице</h3>
+        <p>URL, параметры, screen — для отладки форм и сервера.</p>
+        <button onclick="showPageInfo()">Показать информацию</button>
+        <pre id="page-info-output" style="color:#0f0; margin-top:8px; max-height:200px; overflow-y:auto; font-size:0.7rem;"></pre>
+      </div>
+		
+      <!-- Лог действий -->
+      <div class="control-card">
+        <h3 class="control-title">Лог действий</h3>
+        <p>Последние события для отладки.</p>
+        <button onclick="showLog()">Показать лог</button>
+        <pre id="log-output" style="color:#0f0; margin-top:8px; max-height:200px; overflow-y:auto; font-size:0.7rem;"></pre>
+      </div>
+
+    </div>
+	<h1>ArtPlayHD</h1>
+	<h1>САЙТ RCBaing</h1>
+	<h1></h1>
+	<h1></h1>
+	<h1></h1>
+	<h1></h1>
+	<h1></h1>
+      
+	  
+  </div>
+
+</body>
+
+
+
+
+
+
+
+  <script>
+(function() {
+  'use strict';
+
+  // --- Авторизация (минимальная) ---
+  const ADMIN_EMAIL = 'artplay26f@yandex.ru';
+  const ADMIN_PASS_HASH = 'ea77926ae23f'; // admin123
+  const ADMIN_CODE = '2679';
+  let isAdmin = false;
+  let lockoutUntil = 0;
+  let failedAttempts = 0;
+
+  function hash(pw) {
+    if (pw === 'admin123') return ADMIN_PASS_HASH;
+    return btoa(pw + ':rcbaing-salt').replace(/=/g, '');
+  }
+
+  window.adminLogin = function() {
+    const now = Date.now();
+    if (now < lockoutUntil) {
+      const remaining = Math.ceil((lockoutUntil - now) / 1000);
+      document.getElementById('lock-notice').style.display = 'block';
+      document.getElementById('lock-notice').textContent = `Вход заблокирован. Осталось: ${remaining} сек.`;
+      return;
+    } else {
+      document.getElementById('lock-notice').style.display = 'none';
+      failedAttempts = 0;
+    }
+
+    const email = document.getElementById('inp-email').value.trim();
+    const password = document.getElementById('inp-password').value;
+    const code = document.getElementById('inp-code').value.trim();
+
+    if (email !== ADMIN_EMAIL || hash(password) !== ADMIN_PASS_HASH || code !== ADMIN_CODE) {
+      failedAttempts++;
+      if (failedAttempts >= 3) {
+        lockoutUntil = Date.now() + 30000; // 30 секунд
+        adminLogin(); // показать блокировку
+      } else {
+        alert('Неверный логин/пароль/код');
+      }
+      return;
+    }
+
+    isAdmin = true;
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('admin-panel').style.display = 'flex';
+
+    // Сразу подгрузить текущие значения
+    const mode = localStorage.getItem('rcbaing_page_mode') || 'normal';
+    document.getElementById('inp-page-mode').value = mode;
+
+    renderFlags();
+    alert('Вы вошли в админ‑панель');
+  };
+
+  window.adminLogout = function() {
+    isAdmin = false;
+    document.getElementById('login-screen').style.display = 'flex';
+    document.getElementById('admin-panel').style.display = 'none';
+  };
+
+
+  // --- Режим страницы (СТРОЙКА) ---
+  window.setPageMode = function() {
+    if (!isAdmin) return;
+    const mode = document.getElementById('inp-page-mode').value;
+    localStorage.setItem('rcbaing_page_mode', mode);
+    alert('Режим сохранён: ' + mode);
+  };
+
+
+  // --- Флаги (вкл/выкл произвольных ключей) ---
+  window.setFlag = function() {
+    if (!isAdmin) return;
+    const key = document.getElementById('inp-flag-key').value.trim();
+    const value = document.getElementById('inp-flag-value').checked;
+    if (!key) return alert('Введите ключ');
+    localStorage.setItem('rcbaing_flag_' + key, String(value));
+    alert('Флаг сохранён: ' + key + ' = ' + value);
+    renderFlags();
+  };
+
+  function renderFlags() {
+    const out = document.getElementById('flags-list');
+    let text = '';
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k.startsWith('rcbaing_flag_')) {
+        const v = localStorage.getItem(k);
+        text += k + ' = ' + v + '\n';
+      }
+    }
+    out.textContent = text || '(нет флагов)';
+  }
+
+
+  // --- Подмена текста ---
+  window.replaceText = function() {
+    if (!isAdmin) return;
+    const from = document.getElementById('inp-replace-from').value;
+    const to = document.getElementById('inp-replace-to').value;
+    if (!from) return alert('Укажите, что искать');
+
+    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null, false);
+    const nodes = [];
+    while (walker.nextNode()) nodes.push(walker.currentNode);
+
+    nodes.forEach(node => {
+      node.nodeValue = node.nodeValue.replaceAll(from, to);
+    });
+
+    alert(`Заменено: "` + from + `" → "` + to + `"`);
+  };
+
+
+  // --- Редиректы и заглушки ---
+  window.saveRedirects = function() {
+    if (!isAdmin) return;
+    const url = document.getElementById('inp-redirect-url').value.trim();
+    const enable = document.getElementById('chk-enable-redirect').checked;
+    const maintenance = document.getElementById('chk-show-maintenance').checked;
+
+    localStorage.setItem('rcbaing_redirect_url', url);
+    localStorage.setItem('rcbaing_redirect_enabled', String(enable));
+    localStorage.setItem('rcbaing_maintenance_mode', String(maintenance));
+
+    alert('Настройки сохранены. Перезагрузи страницу, чтобы применить.');
+  };
+
+
+  // --- Настройка CSS‑переменных ---
+  window.setCssVar = function() {
+    if (!isAdmin) return;
+    const varName = document.getElementById('inp-css-var').value.trim();
+    const value = document.getElementById('inp-css-value').value.trim();
+    if (!varName || !value) return alert('Заполните оба поля');
+
+    document.documentElement.style.setProperty(varName, value);
+    localStorage.setItem('rcbaing_css_' + varName, value);
+    alert('Стиль применён и сохранён');
+  };
+
+
+  // --- Обзор и очистка localStorage ---
+  window.showAllStorage = function() {
+    if (!isAdmin) return;
+    const out = document.getElementById('all-storage-output');
+    let text = '';
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      text += k + ': ' + localStorage.getItem(k) + '\n';
+    }
+    out.textContent = text || '(пусто)';
+  };
+
+  window.clearAllStorage = function() {
+    if (!isAdmin) return;
+    if (!confirm('Вы уверены? Это удалит ВСЕ данные из localStorage для этого сайта.')) return;
+    localStorage.clear();
+    alert('localStorage очищен. Перезагрузи страницу.');
+  };
+
+  window.resetKeysByPrefix = function() {
+    if (!isAdmin) return;
+    const prefix = prompt('Введите префикс ключа (например, rcb_):');
+    if (!prefix) return;
+    let count = 0;
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key.startsWith(prefix)) {
+        localStorage.removeItem(key);
+        count++;
+      }
+    }
+    alert(`Удалено ключей с префиксом "${prefix}": ${count}`);
+  };
+
+
+  // --- Информация о странице и лог ---
+  window.showPageInfo = function() {
+    if (!isAdmin) return;
+    const url = new URL(window.location.href);
+    const info = [
+      'URL: ' + window.location.href,
+      'Path: ' + url.pathname,
+      'Search: ' + url.search,
+      'Hash: ' + url.hash,
+      'User-Agent: ' + navigator.userAgent,
+      'Screen: ' + screen.width + '×' + screen.height,
+    ].join('\n');
+    document.getElementById('page-info-output').textContent = info;
+  };
+
+  window.showLog = function() {
+    if (!isAdmin) return;
+    const log = localStorage.getItem('rcbaing_log') || '[]';
+    const arr = JSON.parse(log);
+    document.getElementById('log-output').textContent = arr.join('\n');
+  };
+
+  window.logAction = function(msg) {
+    const now = new Date().toISOString();
+    const log = localStorage.getItem('rcbaing_log') || '[]';
+    const arr = JSON.parse(log);
+    arr.push(`${now} — ${msg}`);
+    if (arr.length > 50) arr.shift();
+    localStorage.setItem('rcbaing_log', JSON.stringify(arr));
+  };
+
+})();
+
+ </script>
+</body>
+</html>

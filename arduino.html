@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <title>Arduino: TFT & EEPROM — RCBaing</title>
+  <style>
+    :root {
+      --bg: #111114;
+      --panel: #1a1b26;
+      --text: #e0e0e4;
+      --blue: #00aaff;
+      --red: #ff4d4d;
+      --code-bg: #0f0f14;
+      --border: #2a2a35;
+    }
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: system-ui, Segoe UI, Roboto, Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      line-height: 1.6;
+    }
+
+    .top-bar {
+      padding: 1rem 2rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(0,0,0,0.5);
+    }
+    .logo {
+      font-weight: 700;
+      color: var(--blue);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+    .tag {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+    .tag.arduino { background: #1a2a1a; color: #8fc31f; }
+    .tag.tft { background: #1a1a22; color: var(--blue); }
+    .tag.eeprom { background: #1a1a22; color: var(--red); }
+
+    main {
+      max-width: 960px;
+      margin: 2rem auto;
+      padding: 0 1.5rem;
+    }
+
+    h1 { color: #fff; font-size: 2.4rem; margin-bottom: 0.3rem; }
+    h2 { color: var(--blue); margin-top: 2.5rem; border-left: 4px solid var(--blue); padding-left: 0.8rem; }
+    h3 { color: #ddd; margin-top: 1.8rem; }
+    p { color: #ccc; margin-bottom: 1rem; }
+
+    pre {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.2rem;
+      overflow-x: auto;
+      margin: 1.2rem 0;
+    }
+    code {
+      font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+      color: #fff;
+    }
+    .lang-badge {
+      position: absolute;
+      right: 12px;
+      top: 10px;
+      font-size: 0.75rem;
+      background: #222;
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: #888;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1.5rem 0;
+      background: var(--panel);
+      border: 1px solid var(--border);
+    }
+    th, td {
+      padding: 0.8rem 1rem;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+    th { background: #24273a; color: var(--blue); }
+
+    .btn-copy {
+      position: absolute;
+      right: 1rem;
+      top: 1rem;
+      background: transparent;
+      border: 1px solid var(--border);
+      color: #888;
+      padding: 0.4rem 0.8rem;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      transition: all 0.2s;
+    }
+    .btn-copy:hover {
+      border-color: var(--blue);
+      color: var(--blue);
+    }
+
+    footer {
+      padding: 2rem;
+      border-top: 1px solid var(--border);
+      text-align: center;
+      color: #666;
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+
+  <header class="top-bar">
+    <div class="logo">RCBaing: Arduino</div>
+    <nav>
+      <span class="tag arduino">Arduino</span>
+      <span class="tag tft">TFT</span>
+      <span class="tag eeprom">EEPROM</span>
+    </nav>
+  </header>
+
+  <main>
+    <h1>Arduino: TFT и EEPROM</h1>
+    <p>
+      Готовые скетчи для чёрно‑белого и цветного TFT‑дисплеев, работа с EEPROM (сохранение после перезагрузки), счётчики и простые пранки в стиле админ‑панели RCBaing.
+    </p>
+
+    <section>
+      <h2>Что понадобится</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Компонент</th>
+            <th>Назначение</th>
+            <th>Примечания</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Arduino Uno</td>
+            <td>Контроллер</td>
+            <td>Подойдёт Nano/Mega</td>
+          </tr>
+          <tr>
+            <td>TFT 1.8″ (ST7735)</td>
+            <td>Цветной дисплей</td>
+            <td>SPI, 128×160</td>
+          </tr>
+          <tr>
+            <td>Чёрно‑белый TFT / OLED</td>
+            <td>Монохромный вывод</td>
+            <td>SSD1306 или аналог</td>
+          </tr>
+          <tr>
+            <td>EEPROM (AT24C256) / встроенная</td>
+            <td>Хранение данных</td>
+            <td>ATmega328 имеет 1 КБ EEPROM</td>
+          </tr>
+          <tr>
+            <td>Библиотеки</td>
+            <td></td>
+            <td><code>Adafruit_GFX, Adafruit_ST7735, EEPROM</code></td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Чёрно‑белый TFT (SSD1306) — простой вывод</h2>
+      <p>
+        Для пранков и «админ‑панелей» в стиле RCBaing удобно использовать монохромный дисплей: меньше кода, чёткие контрастные надписи.
+      </p>
+      <pre>
+<span class="lang-badge">Arduino (SSD1306)</span>
+<code class="language-cpp">#include <SPI.h>
+#include <Wire.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
+
+#define SCREEN_WIDTH 128
+#define SCREEN_HEIGHT 64
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
+
+void setup() {
+  Serial.begin(9600);
+  if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
+    Serial.println(F("SSD1306 allocation failed"));
+    for (;;);
+  }
+  display.clearDisplay();
+  display.setTextSize(1);
+  display.setTextColor(WHITE);
+  display.setCursor(0, 0);
+  display.println("RCB Admin Panel");
+  display.println("Status: ONLINE");
+  display.display();
+}
+
+void loop() {
+  // Здесь логика пранка/счётчика
+}</code></pre>
+      <button class="btn-copy" onclick="copyBlock(this)">Копировать</button>
+    </section>
+
+    <section>
+      <h2>Цветной TFT (ST7735) — базовый вывод</h2>
+      <p>
+        Цветной экран хорош для визуализации уровней, прогресса, игровых элементов (как в RCBlocks или Minecraft‑клоне).
+      </p>
+      <pre>
+<span class="lang-badge">Arduino (ST7735)</span>
+<code class="language-cpp">#include <SPI.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_ST7735.h>
+
+#define TFT_CS 10
+#define TFT_RST 9
+#define TFT_DC 8
+Adafruit_ST7735 tft = Adafruit_ST7735(TFT_CS, TFT_DC, TFT_RST);
+
+void setup(void) {
+  tft.initR(INITR_BLACKTAB);
+  tft.fillScreen(ST7735_BLACK);
+  tft.setTextColor(ST7735_WHITE);
+  tft.setTextSize(2);
+  tft.setCursor(10, 20);
+  tft.println("RCB Zone Active");
+  tft.drawRect(10, 50, 100, 30, ST7735_BLUE);
+  tft.fillRect(12, 52, 96, 26, ST7735_RED);
+  tft.display();
+}
+
+void loop() {}</code></pre>
+      <button class="btn-copy" onclick="copyBlock(this)">Копировать</button>
+    </section>
+
+    <section>
+      <h2>EEPROM — сохранение данных после перезагрузки</h2>
+      <p>
+        Используй это для счётчиков, прогресса, настроек пранка, лунного цикла («Уютный уголок»), уровней.
+      </p>
+      <pre>
+<span class="lang-badge">Arduino (EEPROM)</span>
+<code class="language-cpp">#include <EEPROM.h>
+
+int address = 0; // адрес ячейки
+int savedValue = 0;
+
+void setup() {
+  Serial.begin(9600);
+  savedValue = EEPROM.read(address);
+  Serial.print("Loaded value: ");
+  Serial.println(savedValue);
+}
+
+void loop() {
+  static int counter = 0;
+  counter++;
+  Serial.print("Counter: ");
+  Serial.println(counter);
+
+  // Сохраняем только если значение изменилось (чтобы не изнашивать EEPROM)
+  int currentSaved = EEPROM.read(address);
+  if (currentSaved != counter) {
+    EEPROM.update(address, counter); // update пишет только при разнице
+  }
+
+  delay(1000);
+}</code></pre>
+      <button class="btn-copy" onclick="copyBlock(this)">Копировать</button>
+      <p>
+        Совет: для больших данных (строки, float) используй <code>EEPROM.put()</code> и <code>EEPROM.get()</code>.
+      </p>
+    </section>
+
+    <section>
+      <h2>Счётчик с выводом на TFT (пример интеграции)</h2>
+      <p>
+        Объединяем TFT и EEPROM: счётчик сохраняется и отображается на экране.
+      </p>
+      <pre>
+<span class="lang-badge">Arduino (TFT + EEPROM)</span>
+<code class="language-cpp">#include <SPI.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_ST7735.h>
+#include <EEPROM.h>
+
+#define TFT_CS 10
+#define TFT_RST 9
+#define TFT_DC 8
+Adafruit_ST7735 tft = Adafruit_ST7735(TFT_CS, TFT_DC, TFT_RST);
+
+const int ADDR = 0;
+int counter = 0;
+
+void setup() {
+  tft.initR(INITR_BLACKTAB);
+  tft.fillScreen(ST7735_BLACK);
+  counter = EEPROM.read(ADDR);
+  drawScreen();
+}
+
+void drawScreen() {
+  tft.fillScreen(ST7735_BLACK);
+  tft.setTextColor(ST7735_WHITE);
+  tft.setTextSize(2);
+  tft.setCursor(20, 40);
+  tft.print("Count: ");
+  tft.print(counter);
+  tft.display();
+}
+
+void loop() {
+  counter++;
+  EEPROM.update(ADDR, counter);
+  drawScreen();
+  delay(1000);
+}</code></pre>
+      <button class="btn-copy" onclick="copyBlock(this)">Копировать</button>
+    </section>
+
+    <section>
+      <h2>Пранк в стиле «админ‑панели RCBaing» (идея + пример)</h2>
+      <p>
+        Суть: при включении Arduino показывает «страшную» админ‑панель с ошибками, таймером и мигающими элементами.
+      </p>
+      <ul>
+        <li>Экран: «CRITICAL ERROR», «System Locked», таймер до «shutdown».</li>
+        <li>Мигание: менять цвет рамки/фона или инвертировать цвета.</li>
+        <li>Сохранение: сколько раз запускался пранк (через EEPROM).</li>
+      </ul>
+      <p>
+        Пример логики мигания (для цветного TFT):
+      </p>
+      <pre>
+<span class="lang-badge">Arduino (пранк)</span>
+<code class="language-cpp">bool blink = false;
+
+void loop() {
+  blink = !blink;
+  tft.fillScreen(blink ? ST7735_RED : ST7735_BLACK);
+  tft.setTextColor(blink ? ST7735_BLACK : ST7735_WHITE);
+  tft.setTextSize(2);
+  tft.setCursor(5, 60);
+  tft.println("CRITICAL ERROR");
+  tft.display();
+  delay(300);
+}</code></pre>
+      <button class="btn-copy" onclick="copyBlock(this)">Копировать</button>
+      <p>
+        Под стиль RCBaing можно добавить: «Access Denied», «RCBaing Admin Console», «Level 4 Security», «Shutdown in 10s» и т. п.
+      </p>
+    </section>
+
+    <section>
+      <h2>Частые вопросы и советы</h2>
+      <h3>Какой TFT лучше: цветной или чёрно‑белый?</h3>
+      <p>
+        Чёрно‑белый (SSD1306): проще, быстрее, меньше памяти, отлично для текста и пранков. Цветной (ST7735): для графики, уровней, игровых интерфейсов.
+      </p>
+
+      <h3>Сколько циклов записи выдерживает EEPROM?</h3>
+      <p>
+        Обычно 100 000–1 000 000 циклов. Поэтому используй <code>EEPROM.update()</code> вместо <code>write()</code>, чтобы не перезаписывать одинаковые значения.
+      </p>
+
+      <h3>Как хранить строки или float?</h3>
+      <p>
+        Используй <code>EEPROM.put(address, variable)</code> и <code>EEPROM.get(address, variable)</code>. Следи за адресами и размерами переменных.
+      </p>
+
+      <h3>Можно ли сделать «прогресс» для «Уютного уголка»?</h3>
+      <p>
+        Да. Сохраняй: день/лунный цикл, состояние кота, прогресс печки, записи дневника (номера записей).
+      </p>
+    </section>
+  </main>
+
+  <footer>
+    Arduino: TFT и EEPROM — документация для RCBaing. Для проектов ArtPlayHD и Artelen. © 2026
+  </footer>
+
+  <script>
+    function copyBlock(

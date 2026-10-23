@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <title>BAT и EXE — RCBaing</title>
+  <style>
+    :root {
+      --bg: #111114;
+      --panel: #1a1b26;
+      --text: #e0e0e4;
+      --blue: #00aaff;
+      --red: #ff4d4d;
+      --code-bg: #0f0f14;
+      --border: #2a2a35;
+    }
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: system-ui, Segoe UI, Roboto, Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      line-height: 1.6;
+    }
+
+    .top-bar {
+      padding: 1rem 2rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(0,0,0,0.5);
+    }
+    .logo {
+      font-weight: 700;
+      color: var(--blue);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+    .tag {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+    .tag.bat { background: #1a1a22; color: #ffd43b; }
+    .tag.exe { background: #1a1a22; color: var(--red); }
+    .tag.python { background: #1a2a1a; color: #8fc31f; }
+
+    main {
+      max-width: 960px;
+      margin: 2rem auto;
+      padding: 0 1.5rem;
+    }
+
+    h1 { color: #fff; font-size: 2.4rem; margin-bottom: 0.3rem; }
+    h2 { color: var(--blue); margin-top: 2.5rem; border-left: 4px solid var(--blue); padding-left: 0.8rem; }
+    h3 { color: #ddd; margin-top: 1.8rem; }
+    p { color: #ccc; margin-bottom: 1rem; }
+
+    pre {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.2rem;
+      overflow-x: auto;
+      margin: 1.2rem 0;
+    }
+    code {
+      font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+      color: #fff;
+    }
+    .lang-badge {
+      position: absolute;
+      right: 12px;
+      top: 10px;
+      font-size: 0.75rem;
+      background: #222;
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: #888;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1.5rem 0;
+      background: var(--panel);
+      border: 1px solid var(--border);
+    }
+    th, td {
+      padding: 0.8rem 1rem;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+    th { background: #24273a; color: var(--blue); }
+
+    .btn-copy {
+      position: absolute;
+      right: 1rem;
+      top: 1rem;
+      background: transparent;
+      border: 1px solid var(--border);
+      color: #888;
+      padding: 0.4rem 0.8rem;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      transition: all 0.2s;
+    }
+    .btn-copy:hover {
+      border-color: var(--blue);
+      color: var(--blue);
+    }
+
+    footer {
+      padding: 2rem;
+      border-top: 1px solid var(--border);
+      text-align: center;
+      color: #666;
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+
+  <header class="top-bar">
+    <div class="logo">RCBaing: Installers</div>
+    <nav>
+      <span class="tag bat">BAT</span>
+      <span class="tag exe">EXE</span>
+      <span class="tag python">Python</span>
+    </nav>
+  </header>
+
+  <main>
+    <h1>BAT и EXE установщики</h1>
+    <p>
+      Готовые шаблоны BAT для быстрой установки Python‑окружения, зависимостей и запуска проектов. Варианты сборки EXE (PyInstaller) под твои задачи: админки, RPG‑конструкторы, игры (Pygame, Ursina), RCB‑Pad++.
+    </p>
+
+    <section>
+      <h2>Когда что использовать</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Тип</th>
+            <th>Для чего лучше</th>
+            <th>Плюсы</th>
+            <th>Минусы</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>BAT</td>
+            <td>Быстрая установка, проверка окружения, запуск скриптов, авто‑активация venv</td>
+            <td>Не требует компиляции, легко править, видно шаги</td>
+            <td>Требует установленный Python, виден консольный вывод</td>
+          </tr>
+          <tr>
+            <td>EXE (PyInstaller)</td>
+            <td>Готовый бинарный файл для пользователя, без установленного Python</td>
+            <td>Портативность, можно распространять как «игру» или «админку»</td>
+            <td>Большой размер, антивирусные ложные срабатывания, сложнее отладка</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>BAT‑установщик: базовый шаблон</h2>
+      <p>
+        Этот BAT проверяет наличие Python, создаёт виртуальное окружение, ставит зависимости и запускает проект. Подходит для RCB‑Pad++, админок, RPG‑конструкторов.
+      </p>
+      <pre>
+<span class="lang-badge">BAT</span>
+<code class="language-bat">@echo off
+chcp 65001 >nul
+title RCB Installer
+color 0B
+
+echo ==========================================
+echo   RCBaing Installer (Python project)
+echo ==========================================
+echo.
+
+:: Проверка Python
+where python >nul 2>nul
+if %ERRORLEVEL% NEQ 0 (
+    echo [ОШИБКА] Python не найден в PATH!
+    echo Скачайте Python с python.org и добавьте в PATH.
+    pause
+    exit /b 1
+)
+
+echo [OK] Python найден:
+python --version
+echo.
+
+:: Создание venv
+if not exist "venv" (
+    echo [*] Создаю виртуальное окружение...
+    python -m venv venv
+) else (
+    echo [OK] Виртуальное окружение уже есть.
+)
+
+:: Активация venv
+call venv\Scripts\activate.bat
+
+:: Установка зависимостей
+if exist "requirements.txt" (
+    echo [*] Устанавливаю зависимости...
+    pip install -r requirements.txt
+) else (
+    echo [!] Файл requirements.txt не найден. Пропускаю установку пакетов.
+)
+
+echo.
+echo ==========================================
+echo   Готово! Запускаю проект...
+echo ==========================================
+python main.py
+pause</code></pre>
+      <button class="btn-copy" onclick="copyBlock(this)">Копировать</button>
+      <p>
+        Под твои проекты: для «Уютного уголка» можно добавить проверку папки <code>data/</code>, для админки — создание папки <code>uploads/</code>.
+      </p>
+    </section>
+
+    <section>
+      <h2>BAT: установка конкретных библиотек (для твоих задач)</h2>
+      <p>
+        Если нужно быстро поставить стек для разработки (Pygame, Ursina, NumPy и т. п.) под Python 3.13.
+      </p>
+      <pre>
+<span class="lang-badge">BAT (deps)</span>
+<code class="language-bat">@echo off
+chcp 65001 >nul
+color 0A
+
+echo Установка библиотек для проектов ArtPlayHD/Artelen...
+
+pip install --upgrade pip
+pip install pygame
+pip install ursina
+pip install numpy
+pip install pillow
+
+echo Готово. Проверка:
+python -c "import pygame, ursina, numpy; print('OK')"
+pause</code></pre>
+      <button class="btn-copy" onclick="copyBlock(this)">Копировать</button>
+    </section>
+
+    <section>
+      <h2>Сборка EXE через PyInstaller</h2>
+      <p>
+        Для игр, админок и конструкторов удобно собрать EXE, чтобы пользователь мог запускать без установленного Python.
+      </p>
+      <ul>
+        <li><strong>Установка PyInstaller:</strong> <code>pip install pyinstaller</code></li>
+        <li><strong>Базовый запуск:</strong> <code>pyinstaller --onefile main.py</code></li>
+        <li><strong>С иконкой:</strong> <code>pyinstaller --onefile --icon=app.ico main.py</code></li>
+        <li><strong>Без консоли (GUI):</strong> <code>pyinstaller --onefile --noconsole main.py</code> (для Tkinter/Pygame/Ursina)</li>
+      </ul>
+      <p>
+        В папке <code>dist/</code> появится готовый EXE. Для админок часто используют <code>--noconsole</code>, чтобы не мелькала консоль.
+      </p>
+    </section>
+
+    <section>
+      <h2>BAT для сборки EXE (автоматизация)</h2>
+      <p>
+        Удобно держать отдельный BAT, который собирает EXE одной кнопкой.
+      </p>
+      <pre>
+<span class="lang-badge">BAT (build)</span>
+<code class="language-bat">@echo off
+chcp 65001 >nul
+title Build EXE for RCB Project
+
+call venv\Scripts\activate.bat
+echo Сборка EXE...
+pyinstaller --onefile --noconsole --name RCB_Admin_Panel main.py
+
+if exist "dist\RCB_Admin_Panel.exe" (
+    echo [OK] EXE собран: dist\RCB_Admin_Panel.exe
+) else (
+    echo [ОШИБКА] EXE не найден!
+)
+pause</code></pre>
+      <button class="btn-copy" onclick="copyBlock(this)">Копировать</button>
+    </section>
+
+    <section>
+      <h2>Структура проекта для удобной сборки</h2>
+      <p>
+        Чтобы BAT/EXE работали стабильно, держи такую структуру:
+      </p>
+      <pre>
+project/
+├── main.py                # точка входа
+├── requirements.txt      # зависимости
+├── assets/               # картинки, шрифты, звуки
+├── data/                 # сохранения, конфиги, логи
+├── venv/                 # виртуальное окружение (gitignore)
+├── install.bat           # установка и запуск
+├── build.bat             # сборка EXE
+└── README.md</pre>
+      <p>
+        При сборке EXE PyInstaller по умолчанию не видит папки <code>assets/</code> и <code>data/</code>. Чтобы они попали внутрь, используй <code>--add-data</code> или копируй их вручную рядом с EXE.
+      </p>
+    </section>
+
+    <section>
+      <h2>Примеры</h2>
+      <h3>Админка / RCB‑Pad++</h3>
+      <p>
+        Используй <code>--noconsole</code> и добавь в проект папку <code>data/</code> для загрузок и логов.
+      </p>
+      <pre>
+pyinstaller --onefile --noconsole --add-data "data;data" --name RCB_Pad main.py</pre>
+
+      <h3>Игра на Pygame / Ursina</h3>
+      <p>
+        Важно: все ресурсы (картинки, шрифты) должны лежать в папке рядом с EXE или быть добавлены через <code>--add-data</code>. В коде используй относительные пути:
+      </p>
+      <pre><code class="language-python">import os
+def get_path(name):
+    base = getattr(sys, '_MEIPASS', os.path.abspath('.'))
+    return os.path.join(base, name)</code></pre>
+      <p>
+        Это нужно, чтобы игра находила картинки и внутри EXE, и при запуске из папки.
+      </p>
+
+      <h3>RPG‑конструктор / «Уютный уголок»</h3>
+      <p>
+        Сохранения (JSON, SQLite) лучше хранить в <code>%APPDATA%</code> или в папке <code>data/</code> рядом с EXE. Так прогресс не пропадёт при переустановке.
+      </p>
+    </section>
+
+    <section>
+      <h2>Частые проблемы и решения</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Проблема</th>
+            <th>Решение</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Антивирус ругается на EXE</td>
+            <td>Это частый ложный сигнал. Для тестов можно подписывать или распространять как архив с BAT + исходниками.</td>
+          </tr>
+          <tr>
+            <td>Картинки не грузятся в EXE</td>
+            <td>Добавь их через <code>--add-data</code> либо используй функцию <code>get_path</code> выше.</td>
+          </tr>
+          <tr>
+            <td>Слишком большой EXE</td>
+            <td>Убери лишние зависимости, используй только нужные модули, избегай <code>import *</code>.</td>
+          </tr>
+          <tr>
+            <td>Ошибка «Python не найден» в BAT</td>
+            <td>Проверь, добавлен ли Python в PATH, или укажи полный путь к <code>python.exe</code>.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+
+  </main>
+
+  <footer>
+    BAT и EXE установщики — документация для RCBaing. Для проектов ArtPlayHD и Artelen. © 2026
+  </footer>
+
+  <script>
+    function copyBlock(btn) {
+      const code = btn.parentElement.querySelector('code').textContent;
+      navigator.clipboard.writeText(code).then(() => {
+        const originalText = btn.innerText;
+        btn.innerText = 'Скопировано';
+        setTimeout(() => btn.innerText = originalText, 2000);
+      });
+    }
+  </script>
+</body>
+</html>

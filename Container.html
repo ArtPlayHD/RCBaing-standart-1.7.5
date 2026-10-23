@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <title>Живой этаж — Уютный уголок (RCBaing)</title>
+  <style>
+    :root {
+      --bg: #0f0f12;
+      --panel: #1a1b26;
+      --text: #e0e0e4;
+      --blue: #00aaff;
+      --red: #ff4d4d;
+      --orange: #f97316;
+      --green: #4ade80;
+      --warm: #ffaa00;
+      --border: #2a2a35;
+    }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: system-ui, Segoe UI, Roboto, sans-serif;
+      margin: 0;
+      padding: 0;
+      overflow: hidden; /* чтобы не было скролла */
+    }
+
+    /* Верхняя панель: название и статус этажа */
+    header {
+      padding: 1rem 2rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(0,0,0,0.4);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .logo {
+      font-weight: 700;
+      color: var(--blue);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+    .status-pill {
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      border: 1px solid var(--border);
+    }
+    .status-ok { background: rgba(74, 222, 128, 0.15); color: var(--green); border-color: var(--green); }
+
+    /* Основной экран: вид этажа */
+    main {
+      min-height: calc(100vh - 64px);
+      padding: 2rem;
+      display: grid;
+      grid-template-columns: 1fr 320px;
+      gap: 2rem;
+    }
+
+    .scene {
+      position: relative;
+      background: var(--panel);
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      aspect-ratio: 16/9;
+      overflow: hidden;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 1.5rem;
+      user-select: none;
+    }
+    .room-label {
+      position: absolute;
+      bottom: 1rem;
+      left: 1rem;
+      font-size: 0.9rem;
+      color: #888;
+      background: rgba(10,10,14,0.7);
+      padding: 6px 12px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+    }
+
+    /* Элементы комнаты: кот, печка, луна */
+    .item-box {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 1rem;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      width: 180px;
+    }
+    .item-icon {
+      font-size: 2.2rem;
+      line-height: 1;
+    }
+    .item-name {
+      font-weight: 600;
+      color: #fff;
+    }
+    .item-value {
+      color: var(--orange);
+      font-weight: 700;
+      font-size: 1.1rem;
+    }
+    .bar-bg {
+      width: 100%;
+      height: 6px;
+      background: #2a2a35;
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .bar-fill {
+      height: 100%;
+      background: var(--warm);
+      width: 50%;
+      transition: width 0.4s ease, background 0.4s;
+    }
+
+    /* Панель управления справа */
+    .controls {
+      display: flex;
+      flex-direction: column;
+      gap: 1.2rem;
+    }
+    h2 { color: var(--blue); margin-top: 0; }
+    .control-group {
+      background: var(--panel);
+      padding: 1rem;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+    }
+    .label-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.6rem;
+      color: #aaa;
+      font-size: 0.85rem;
+    }
+    button {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 8px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.95rem;
+      transition: all 0.2s;
+    }
+    button:hover { border-color: var(--blue); color: var(--blue); }
+    button.primary {
+      background: var(--blue);
+      color: #000;
+      border-color: var(--blue);
+    }
+    button.primary:hover { background: #00ccff; }
+
+    /* Индикаторы */
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+    .dot.on { background: var(--green); box-shadow: 0 0 8px var(--green); }
+    .dot.off { background: #333; }
+
+    footer {
+      padding: 1rem 2rem;
+      color: #666;
+      font-size: 0.85rem;
+      border-top: 1px solid var(--border);
+      text-align: right;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="logo">RCBaing: Живой этаж</div>
+    <span class="status-pill status-ok">Этаж активен</span>
+  </header>
+
+  <main>
+    <!-- Сцена: визуализация комнаты -->
+    <div class="scene">
+      <div class="room-label">Подвал базы RCB — Уютный уголок</div>
+
+      <div style="display: flex; gap: 1.5rem; flex-wrap: wrap; justify-content: center;">
+        <!-- Кот -->
+        <div class="item-box">
+          <div class="item-icon">🐱</div>
+          <div class="item-name">Кот</div>
+          <div class="item-value" id="val-cat">82%</div>
+          <div class="bar-bg"><div class="bar-fill" id="bar-cat" style="width:82%; background:#ffaa00;"></div></div>
+        </div>
+
+        <!-- Печка -->
+        <div class="item-box">
+          <div class="item-icon">🔥</div>
+          <div class="item-name">Печка</div>
+          <div class="item-value" id="val-stove">340°C</div>
+          <div class="bar-bg"><div class="bar-fill" id="bar-stove" style="width:42%; background:#ff5500;"></div></div>
+        </div>
+
+        <!-- Луна -->
+        <div class="item-box">
+          <div class="item-icon">🌙</div>
+          <div class="item-name">Лунный цикл</div>
+          <div class="item-value" id="val-moon">Растущая</div>
+          <div style="margin-top:4px; font-size:0.85rem; color:#888;">День 14/28</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Панель управления -->
+    <aside class="controls">
+      <h2>Управление этажом</h2>
+
+      <div class="control-group">
+        <div class="label-row">
+          <span>Кот: погладить</span>
+          <button class="primary" onclick="interact('cat')">Погладить</button>
+        </div>
+        <p style="font-size:0.85rem; color:#999;">
+          Кот греется у печки. Если его погладить — настроение растёт. Если долго не гладить — падает.
+        </p>
+      </div>
+
+      <div class="control-group">
+        <div class="label-row">
+          <span>Печка: добавить дрова</span>
+          <button class="primary" onclick="interact('stove')">Подкинуть дров</button>
+        </div>
+        <p style="font-size:0.85rem; color:#999;">
+          Печка греет комнату. Температура медленно падает, если не подкидывать дрова.
+        </p>
+      </div>
+
+      <div class="control-group">
+        <h3>Статус этажа</h3>
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.6rem;">
+          <span>Освещение</span>
+          <span><div class="dot on"></div></span>
+        </div>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.6rem;">
+          <span>Вентиляция</span>
+          <span><div class="dot off"></div></span>
+        </div>
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <span>Сигнализация</span>
+          <span><div class="dot off"></div></span>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <h3>Журнал событий</h3>
+        <div id="log" style="height:140px; overflow-y:auto; background:rgba(0,0,0,0.2); padding:8px; border-radius:6px; color:#aaa; font-family:'Consolas',monospace; font-size:0.85rem;">
+          <!-- сюда JS пишет события -->
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <footer>
+    Живой этаж (Utility Floor) — симулятор «Уютного уголка». Для проектов ArtPlayHD и Artelen. © 2026
+  </footer>
+
+  <script>
+    // Состояние этажа
+    const state = {
+      cat: 82,
+      stoveTemp: 340,
+      moonDay: 14
+    };
+
+    const MAX_CAT = 100;
+    const MIN_CAT = 20;
+
+    function log(msg) {
+      const el = document.getElementById('log');
+      const now = new Date().toLocaleTimeString();
+      el.innerHTML = `[${now}] ${msg}<br>` + el.innerHTML;
+    }
+
+    function updateUI() {
+      // Кот
+      const catV = document.getElementById('val-cat');
+      const barCat = document.getElementById('bar-cat');
+      catV.textContent = state.cat + '%';
+      barCat.style.width = state.cat + '%';
+      if (state.cat > 90) barCat.style.background = '#ffd700';
+      else if (state.cat < 40) barCat.style.background = '#ff5500';
+      else barCat.style.background = '#ffaa00';
+
+      // Печка
+      const stoveV = document.getElementById('val-stove');
+      const barStove = document.getElementById('bar-stove');
+      stoveV.textContent = Math.round(state.stoveTemp) + '°C';
+      const pct = Math.min(100, Math.max(0, state.stoveTemp / 800 * 100));
+      barStove.style.width = pct + '%';
+      if (state.stoveTemp > 600) barStove.style.background = '#ff3300';
+      else barStove.style.background = '#ff5500';
+
+      // Луна
+      const moonV = document.getElementById('val-moon');
+      let phase = 'Новолуние';
+      if (state.moonDay < 7) phase = 'Новолуние';
+      else if (state.moonDay < 14) phase = 'Растущая';
+      else if (state.moonDay < 21) phase = 'Полнолуние';
+      else phase = 'Убывающая';
+      moonV.textContent = phase;
+    }
+
+    // Взаимодействие
+    function interact(type) {
+      if (type === 'cat') {
+        const add = Math.random() * 15 + 5;
+        state.cat = Math.min(MAX_CAT, state.cat + add);
+        log('Вы погладили кота. Настроение: ' + Math.round(state.cat) + '%');
+      } else if (type === 'stove') {
+        const add = Math.random() * 120 + 80;
+        state.stoveTemp = Math.min(800, state.stoveTemp + add);
+        log('Подкинули дров. Температура: ' + Math.round(state.stoveTemp) + '°C');
+      }
+      updateUI();
+    }
+
+    // Авто‑таймер: время идёт, печка остывает, кот грустит
+    setInterval(() => {
+      state.moonDay++;
+      if (state.moonDay > 28) state.moonDay = 1;
+
+      state.stoveTemp -= 12; // печка медленно остывает
+      if (state.stoveTemp < 50) state.stoveTemp = 50;
+
+      state.cat -= 2; // кот без внимания грустит
+      if (state.cat < MIN_CAT) state.cat = MIN_CAT;
+
+      updateUI();
+    }, 3000); // каждые 3 секунды — как будто время идёт
+
+    // Первый запуск
+    updateUI();
+  </script>
+</body>
+</html>
