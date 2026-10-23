@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <title>RCB: Патруль базы</title>
+  <style>
+    :root {
+      --bg: #0b0c12;
+      --panel: #1a1b26;
+      --text: #e0e0e4;
+      --blue: #00aaff;
+      --red: #ff4d4d;
+      --orange: #f97316;
+      --green: #4ade80;
+      --border: #2a2a35;
+    }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: system-ui, Segoe UI, Roboto, sans-serif;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      user-select: none;
+    }
+
+    /* HUD — панель сверху */
+    #hud {
+      position: absolute;
+      top: 1rem;
+      left: 1rem;
+      right: 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 10;
+    }
+    .stat-box {
+      display: flex;
+      flex-direction: column;
+      gap: 0.3rem;
+      background: rgba(0,0,0,0.5);
+      padding: 0.6rem 1rem;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+    }
+    .stat-label { font-size: 0.8rem; color: #aaa; text-transform: uppercase; letter-spacing: 0.5px; }
+    .stat-value { font-weight: 700; color: var(--blue); }
+    #alert-bar {
+      height: 8px;
+      background: #333;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      overflow: hidden;
+    }
+    #alert-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--orange), var(--red));
+      transition: width 0.2s;
+    }
+
+    /* Игровая область */
+    #game-area {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      touch-action: none;
+    }
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* Экран старта/конца */
+    #overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(0,0,0,0.85);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 20;
+      text-align: center;
+    }
+    h1 { color: var(--blue); text-transform: uppercase; margin: 0 0 1rem 0; letter-spacing: 2px; }
+    p { color: #aaa; margin-bottom: 1.5rem; }
+    button.start-btn {
+      padding: 1rem 2rem;
+      font-size: 1.1rem;
+      background: var(--blue);
+      color: #000;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 700;
+      box-shadow: 0 4px 12px rgba(0,170,255,0.3);
+    }
+    button.start-btn:hover { background: #00ccff; }
+
+    /* Частицы и эффекты */
+    .particle {
+      position: absolute;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="hud">
+    <div class="stat-box">
+      <span class="stat-label">Ресурсы</span>
+      <span class="stat-value" id="res-val">0</span>
+    </div>
+    <div class="stat-box">
+      <span class="stat-label">Волны</span>
+      <span class="stat-value" id="wave-val">1</span>
+    </div>
+    <div class="stat-box" style="text-align:right;">
+      <span class="stat-label" style="color:var(--red)">Тревога</span>
+      <div id="alert-bar"><div id="alert-fill"></div></div>
+    </div>
+  </div>
+
+  <div id="game-area">
+    <canvas id="gameCanvas"></canvas>
+
+    <div id="overlay">
+      <h1>RCB: ПАТРУЛЬ БАЗЫ</h1>
+      <p>Удерживай базу: отбивай волны «глюков» и собирай ресурсы.<br>
+         Управление: мышь или касания. Стреляй ЛКМ / тапом.<br>
+         Не дай шкале тревоги заполниться!</p>
+      <button class="start-btn" onclick="startGame()">Начать смену</button>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+
+    // Настройка размера
+    function resize() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    // Состояние
+    const state = {
+      player: { x: canvas.width / 2, y: canvas.height - 80, r: 16, color: '#00aaff' },
+      bullets: [],
+      enemies: [],
+      particles: [],
+      resources: 0,
+      wave: 1,
+      alert: 0, // 0–100
+      gameActive: false,
+      lastTime: null
+    };
+
+    // Ввод
+    let mouse = { x: 0, y: 0 };
+    window.addEventListener('mousemove', e => {
+      mouse.x = e.clientX;
+      mouse.y = e.clientY;
+    });
+    window.addEventListener('mousedown', () => shoot());
+    window.addEventListener('touchstart', e => {
+      const touch = e.touches[0];
+      mouse.x = touch.clientX;
+      mouse.y = touch.clientY;
+      shoot();
+    }, { passive: false });
+
+    function shoot() {
+      if (!state.gameActive) return;
+      const angle = Math.atan2(mouse.y - state.player.y, mouse.x - state.player.x);
+      state.bullets.push({
+        x: state.player.x,
+        y: state.player.y,
+        vx: Math.cos(angle) * 12,
+        vy: Math.sin(angle) * 12,
+        r: 6,
+        life: 1
+      });
+    }
+
+    // Спавн врагов
+    function spawnWave() {
+      const count = 3 + state.wave * 2;
+      for (let i = 0; i < count; i++) {
+        const x = Math.random() * (canvas.width - 60) + 30;
+        state.enemies.push({
+          x: x,
+          y: -40,
+          vx: 0,
+          vy: 2 + state.wave * 0.4,
+          r: 14,
+          hp: 1 + Math.floor(state.wave / 2),
+          color: '#ff4d4d'
+        });
+      }
+      state.alert = Math.min(100, state.alert + 15);
+    }
+
+    // Частицы
+    function emitParticles(x, y, count, color) {
+      for (let i = 0; i < count; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = Math.random() * 6 + 2;
+        state.particles.push({
+          x, y,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          life: 1,
+          color
+        });
+      }
+    }
+
+    // Основной цикл
+    function loop(t) {
+      if (!state.lastTime) state.lastTime = t;
+      const dt = (t - state.lastTime) / 16; // нормализация
+      state.lastTime = t;
+
+      ctx.fillStyle = 'rgba(11,12,18,0.9)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      if (state.gameActive) {
+        // Игрок
+        ctx.beginPath();
+        ctx.arc(state.player.x, state.player.y, state.player.r, 0, Math.PI*2);
+        ctx.fillStyle = state.player.color;
+        ctx.fill();
+        // Прицел
+        ctx.beginPath();
+        ctx.moveTo(state.player.x, state.player.y);
+        ctx.lineTo(mouse.x, mouse.y);
+        ctx.strokeStyle = 'rgba(0,170,255,0.4)';
+        ctx.setLineDash([10, 10]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Пули
+        for (let i = state.bullets.length - 1; i >= 0; i--) {
+          const b = state.bullets[i];
+          b.x += b.vx; b.y += b.vy;
+          if (b.x < 0 || b.x > canvas.width || b.y < 0 || b.y > canvas.height) {
+            state.bullets.splice(i, 1); continue;
+          }
+          ctx.beginPath();
+          ctx.arc(b.x, b.y, b.r, 0, Math.PI*2);
+          ctx.fillStyle = '#fff';
+          ctx.fill();
+        }
+
+        // Враги
+        for (let i = state.enemies.length - 1; i >= 0; i--) {
+          const e = state.enemies[i];
+          e.y += e.vy;
+          // Коллизия с игроком
+          const dx = e.x - state.player.x;
+          const dy = e.y - state.player.y;
+          const dist = Math.sqrt(dx*dx + dy*dy);
+          if (dist < e.r + state.player.r) {
+            gameOver('Контакт с глюком!');
+            return;
+          }
+          // Пули по врагу
+          for (let j = state.bullets.length - 1; j >= 0; j--) {
+            const b = state.bullets[j];
+            const d = Math.hypot(e.x - b.x, e.y - b.y);
+            if (d < e.r + b.r) {
+              e.hp--;
+              state.bullets.splice(j, 1);
+              emitParticles(e.x, e.y, 4, '#ff4d4d');
+              if (e.hp <= 0) {
+                state.resources += Math.floor(1 + state.wave / 3);
+                emitParticles(e.x, e.y, 8, '#4ade80');
+                state.enemies.splice(i, 1);
+                break;
+              }
+            }
+          }
+          if (e.y > canvas.height) {
+            state.enemies.splice(i, 1);
+            state.alert = Math.min(100, state.alert + 5);
+          } else {
+            ctx.beginPath();
+            ctx.arc(e.x, e.y, e.r, 0, Math.PI*2);
+            ctx.fillStyle = e.color;
+            ctx.fill();
+            // HP бар
+            ctx.fillStyle = '#333';
+            ctx.fillRect(e.x - 12, e.y - 22, 24, 6);
+            const hpPct = Math.max(0, e.hp / (1 + Math.floor(state.wave/2)));
+            ctx.fillStyle = hpPct > 0.3 ? '#4ade80' : '#ff4d4d';
+            ctx.fillRect(e.x - 12, e.y - 22, 24 * hpPct, 6);
+          }
+        }
+
+        // Частицы
+        for (let i = state.particles.length - 1; i >= 0; i--) {
+          const p = state.particles[i];
+          p.x += p.vx * dt; p.y += p.vy * dt;
+          p.life -= 0.05 * dt;
+          if (p.life <= 0) {
+            state.particles.splice(i, 1); continue;
+          }
+          ctx.globalAlpha = p.life;
+          ctx.fillStyle = p.color;
+          ctx.fillRect(p.x - 4, p.y - 4, 8, 8);
+          ctx.globalAlpha = 1;
+        }
+
+        // Волны и тревога
+        if (state.enemies.length === 0 && state.wave < 10) {
+          state.wave++;
+          spawnWave();
+        } else if (state.wave >= 10 && state.enemies.length === 0) {
+          gameWon();
+          return;
+        }
+
+        state.alert = Math.max(0, state.alert - 0.15 * dt);
+        if (state.alert >= 100) {
+          gameOver('Система перегружена!');
+          return;
+        }
+      }
+
+      // UI
+      document.getElementById('res-val').textContent = state.resources;
+      document.getElementById('wave-val').textContent = state.wave;
+      document.getElementById('alert-fill').style.width = state.alert + '%';
+
+      requestAnimationFrame(loop);
+    }
+
+    function startGame() {
+      state.player.x = canvas.width / 2;
+      state.player.y = canvas.height - 80;
+      state.bullets = [];
+      state.enemies = [];
+      state.particles = [];
+      state.resources = 0;
+      state.wave = 1;
+      state.alert = 0;
+      state.gameActive = true;
+      spawnWave();
+      document.getElementById('overlay').style.display = 'none';
+      loop(performance.now());
+    }
+
+    function gameOver(reason) {
+      state.gameActive = false;
+      showOverlay(`Смена провалена!\n${reason}`, 'Повторить', startGame);
+    }
+
+    function gameWon() {
+      state.gameActive = false;
+      showOverlay(`База защищена!\nРесурсов собрано: ${state.resources}`, 'Ещё раз', startGame);
+    }
+
+    function showOverlay(text, btnText, callback) {
+      const o = document.getElementById('overlay');
+      o.style.display = 'flex';
+      o.innerHTML = `
+        <h1>ОТЧЁТ ПО СМЕНЕ</h1>
+        <p style="color:#fff; font-size:1.1rem;">${text}</p>
+        <button class="start-btn" onclick="${callback.toString() === startGame.toString() ? 'startGame()' : 'gameOver("")'}">${btnText}</button>
+      `;
+      // Для простоты: пересоздаём кнопку через eval-безопасный способ, но тут просто перезапуск
+      const btn = o.querySelector('button');
+      btn.onclick = callback;
+    }
+
+    // Старт цикла при готовности
+    requestAnimationFrame(t => loop(t));
+  </script>
+</body>
+</html>

@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <title>RPG Constructor — SimplePy</title>
+  <style>
+    :root {
+      --bg: #111114;
+      --panel: #1a1b26;
+      --text: #e0e0e4;
+      --blue: #00aaff;
+      --red: #ff4d4d;
+      --code-bg: #0f0f14;
+      --border: #2a2a35;
+    }
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: system-ui, Segoe UI, Roboto, Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      line-height: 1.6;
+    }
+
+    .top-bar {
+      padding: 1rem 2rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(0,0,0,0.5);
+    }
+    .logo {
+      font-weight: 700;
+      color: var(--blue);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+    .tag {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+    .tag.rpg { background: #1a1a22; color: #ffd43b; }
+    .tag.simplepy { background: #1a2a1a; color: #8fc31f; }
+
+    main {
+      max-width: 960px;
+      margin: 2rem auto;
+      padding: 0 1.5rem;
+    }
+
+    h1 { color: #fff; font-size: 2.4rem; margin-bottom: 0.3rem; }
+    h2 { color: var(--blue); margin-top: 2.5rem; border-left: 4px solid var(--blue); padding-left: 0.8rem; }
+    h3 { color: #ddd; margin-top: 1.8rem; }
+    p { color: #ccc; margin-bottom: 1rem; }
+
+    pre {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.2rem;
+      overflow-x: auto;
+      margin: 1.2rem 0;
+    }
+    code {
+      font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+      color: #fff;
+    }
+    .lang-badge {
+      position: absolute;
+      right: 12px;
+      top: 10px;
+      font-size: 0.75rem;
+      background: #222;
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: #888;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1.5rem 0;
+      background: var(--panel);
+      border: 1px solid var(--border);
+    }
+    th, td {
+      padding: 0.8rem 1rem;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+    th { background: #24273a; color: var(--blue); }
+
+    .btn-copy {
+      position: absolute;
+      right: 1rem;
+      top: 1rem;
+      background: transparent;
+      border: 1px solid var(--border);
+      color: #888;
+      padding: 0.4rem 0.8rem;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      transition: all 0.2s;
+    }
+    .btn-copy:hover {
+      border-color: var(--blue);
+      color: var(--blue);
+    }
+
+    footer {
+      padding: 2rem;
+      border-top: 1px solid var(--border);
+      text-align: center;
+      color: #666;
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+
+  <header class="top-bar">
+    <div class="logo">RCBaing: RPG Constructor</div>
+    <nav>
+      <span class="tag rpg">RPG</span>
+      <span class="tag simplepy">SimplePy</span>
+    </nav>
+  </header>
+
+  <main>
+    <h1>RPG‑конструктор (SimplePy)</h1>
+    <p>
+      Готовые модули для RPG на SimplePy: инвентарь, диалоги, квесты, сохранение прогресса. Шаблоны под проекты ArtPlayHD/Artelen: «Уютный уголок», RPG‑конструктор, админки, игры в стиле Minecraft‑клона и зомби‑апокалипсиса.
+    </p>
+
+    <section>
+      <h2>Структура проекта RPG на SimplePy</h2>
+      <p>
+        Держи рекомендуемую структуру, чтобы модули легко подключать как «моды» и собирать конструктор.
+      </p>
+      <pre>rpg_project/
+├── main.py                # точка входа, запуск игры
+├── engine/               # ядро SimplePy (easyprint, core utils)
+├── modules/              # модули конструктора (инвентарь, диалоги и т. п.)
+│   ├── inventory.py
+│   ├── dialogs.py
+│   ├── quests.py
+│   └── save_system.py
+├── data/                 # сохранения, JSON, конфиги
+│   └── saves/
+├── assets/               # картинки, шрифты, звуки
+└── requirements.txt</pre>
+      <p>
+        Для «Уютного уголка» можно вынести кота, печку, лунный цикл в отдельные модули — тогда это будет настоящий конструктор.
+      </p>
+    </section>
+
+    <section>
+      <h2>Модуль: Инвентарь</h2>
+      <p>
+        Простой инвентарь с лимитом, добавлением/удалением предметов, отображением. Подходит для RPG‑конструктора и Minecraft‑стиля.
+      </p>
+      <pre>
+<span class="lang-badge">Python (inventory)</span>
+<code class="language-python">class Inventory:
+    def __init__(self, capacity=10):
+        self.capacity = capacity
+        self.items = []
+
+    def add_item(self, item):
+        if len(self.items) >= self.capacity:
+            return False
+        self.items.append(item)
+        return True
+
+    def remove_item(self, item_name):
+        for i, item in enumerate(self.items):
+            if item.get("name") == item_name:
+                return self.items.pop(i)
+        return None
+
+    def has_item(self, item_name, count=1):
+        c = sum(1 for x in self.items if x.get("name") == item_name)
+        return c >= count
+
+    def get_items(self):
+        return self.items
+
+    def show(self):
+        print("=== ИНВЕНТАРЬ ===")
+        if not self.items:
+            print("Пусто")
+        else:
+            for i, it in enumerate(self.items, 1):
+                print(f"{i}. {it.get('name')} ({it.get('count', 1)})")
+        print("==================")</code></pre>
+      <button class="btn-copy" onclick="copyBlock(this)">Копировать</button>
+    </section>
+
+    <section>
+      <h2>Модуль: Диалоги</h2>
+      <p>
+        Диалоговая система с выбором ответов, ветвлениями и флагами. Подходит для квестов и «Дневников Стива».
+      </p>
+      <pre>
+<span class="lang-badge">Python (dialogs)</span>
+<code class="language-python">class DialogNode:
+    def __init__(self, text, options=None, next_nodes=None, condition=None):
+        self.text = text
+        self.options = options or []
+        self.next_nodes = next_nodes or []
+        self.condition = condition
+
+    def is_available(self, flags):
+        if not self.condition:
+            return True
+        return self.condition(flags)
+
+class DialogSystem:
+    def __init__(self):
+        self.nodes = {}
+        self.flags = {}
+
+    def register(self, name, node):
+        self.nodes[name] = node
+
+    def start(self, start_node):
+        current = start_node
+        while current:
+            if not current.is_available(self.flags):
+                break
+            print(current.text)
+            if not current.options:
+                break
+            for i, opt in enumerate(current.options, 1):
+                print(f"{i}. {opt}")
+            try:
+                choice = int(input("Выбор: "))
+                next_name = current.next_nodes[choice - 1]
+                current = self.nodes.get(next_name)
+            except (ValueError, IndexError):
+                print("Неверный выбор.")
+                current = None
+
+# Пример использования
+def make_village_dialog():
+    sys = DialogSystem()
+    sys.register("start", DialogNode(
+        "Старик: «Ты пришёл издалека? У меня есть задание…»",
+        ["Да, я помогу", "Нет, я спешу"],
+        ["help_accept", "help_refuse"]
+    ))
+    sys.register("help_accept", DialogNode(
+        "Старик: «Спасибо! Принеси мне 3 яблока.»",
+        [], []
+    ))
+    sys.register("help_refuse", DialogNode(
+        "Старик: «Как знаешь. Возвращайся, если передумаешь.»",
+        [], []
+    ))
+    return sys</code></pre>
+      <button class="btn-copy" onclick="copyBlock(this)">Копировать</button>
+    </section>
+
+    <section>
+      <h2>Модуль: Квесты</h2>
+      <p>
+        Система квестов с целями, прогрессом, наградами и статусами. Подходит для админок и RPG‑конструкторов.
+      </p>
+      <pre>
+<span class="lang-badge">Python (quests)</span>
+<code class="language-python">class Quest:
+    def __init__(self, qid, title, description, objectives, reward):
+        self.id = qid
+        self.title = title
+        self.description = description
+        self.objectives = objectives  # список функций-условий
+        self.reward = reward
+        self.progress = [False] * len(objectives)
+        self.completed = False
+
+    def check_progress(self, player):
+        changed = False
+        for i, obj in enumerate(self.objectives):
+            if not self.progress[i] and obj(player):
+                self.progress[i] = True
+                changed = True
+        if all(self.progress) and not self.completed:
+            self.completed = True
+            return True  # квест завершён
+        return changed
+
+    def status(self):
+        total = len(self.progress)
+        done = sum(self.progress)
+        return f"{self.title}: {done}/{total}"
+
+class QuestSystem:
+    def __init__(self):
+        self.quests = {}
+
+    def add(self, quest):
+        self.quests[quest.id] = quest
+
+    def update_all(self, player):
+        completed = []
+        for q in self.quests.values():
+            if q.check_progress(player):
+                completed.append(q)
+        return completed</code></pre>
+      <button class="btn-copy" onclick="copyBlock(this)">Копировать</button>
+      <p>
+        Пример цели квеста: <code>lambda p: p.inventory.has_item("apple", 3)</code>.
+      </p>
+    </section>
+
+    <section>
+      <h2>Модуль: Сохранение прогресса</h2>
+      <p>
+        Сохранение в JSON: инвентарь, флаги диалогов, прогресс квестов. Для «Уютного уголка» сюда можно добавить луну, кота и печку.
+      </p>
+      <pre>
+<span class="lang-badge">Python (save_system)</span>
+<code class="language-python">import json
+import os
+
+class SaveSystem:
+    def __init__(self, base_path="data/saves"):
+        self.base_path = base_path
+        os.makedirs(base_path, exist_ok=True)
+
+    def save(self, data, filename="savegame.json"):
+        path = os.path.join(self.base_path, filename)
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+
+    def load(self, filename="savegame.json"):
+        path = os.path.join(self.base_path, filename)
+        if not os.path.exists(path):
+            return None
+        with open(path, "r", encoding="utf-8") as f:
+            return json.load(f)
+
+def build_save_data(player, dialog_sys, quest_sys):
+    return {
+        "inventory": [{"name": i["name"], "count": i.get("count", 1)} for i in player.inventory.get_items()],
+        "dialog_flags": dialog_sys.flags,
+        "quests": {
+            q.id: {"progress": q.progress, "completed": q.completed} for q in quest_sys.quests.values()
+        }
+    }</code></pre>
+      <button class="btn-copy" onclick="copyBlock(this)">Копировать</button>
+    </section>
+
+    <section>
+      <h2>Сборка RPG: пример main.py</h2>
+      <p>
+        Точка входа, которая собирает модули вместе. Можно использовать как шаблон для «Дневника Стива» или игры в стиле зомби‑апокалипсис.
+      </p>
+      <pre>
+<span class="lang-badge">Python (main)</span>
+<code class="language-python">from modules.inventory import Inventory
+from modules.dialogs import DialogSystem, make_village_dialog
+from modules.quests import Quest, QuestSystem
+from modules.save_system import SaveSystem, build_save_data
+
+def main():
+    # Инициализация
+    inv = Inventory(capacity=12)
+    dialog_sys = make_village_dialog()
+    quest_sys = QuestSystem()
+
+    # Пример квеста
+    q = Quest(
+        qid="bring_apples",
+        title="Принеси яблоки",
+        description="Старик просит 3 яблока.",
+        objectives=[lambda p: p.inventory.has_item("apple", 3)],
+        reward={"xp": 50, "gold": 10}
+    )
+    quest_sys.add(q)
+
+    save_sys = SaveSystem()
+
+    player = {"inventory": inv, "flags": {}}
+
+    # Цикл игры
+    while True:
+        cmd = input("\n[i]нвентарь | [d]иалог | [q]весты | [s]охранить | [l]оад | [x]выход > ").strip().lower()
+        if cmd == "i":
+            inv.show()
+        elif cmd == "d":
+            dialog_sys.start(dialog_sys.nodes["start"])
+        elif cmd == "q":
+            for q in quest_sys.quests.values():
+                print(q.status())
+            quest_sys.update_all(player)
+        elif cmd == "s":
+            data = build_save_data(player, dialog_sys, quest_sys)
+            save_sys.save(data)
+            print("Сохранено.")
+        elif cmd == "l":
+            data = save_sys.load()
+            if data:
+                # Здесь можно восстановить инвентарь, флаги, квесты
+                print("Загружено (восстановление упрощено).")
+            else:
+                print("Нет сохранений.")
+        elif cmd == "x":
+            break
+
+if __name__ == "__main__":
+	main()
+</code>

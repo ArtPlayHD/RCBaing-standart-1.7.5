@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Достижения — RCBaing</title>
+  <link rel="stylesheet" type="text/css" href="style.css">
+</head>
+<body id="Achievements_body">
+
+  <h1>Достижения</h1>
+
+  <!-- Прогресс-бар -->
+  <div class="progress-container">
+    <h3>Прогресс коллекции достижений</h3>
+    <div class="progress-bar">
+      <div id="achievementProgress" class="fill"></div>
+    </div>
+    <p id="achievementText">0 / 10</p>
+  </div>
+
+  <!-- Карточки достижений (сетка) -->
+  <div class="achievements-grid">
+
+    <div class="ach-card" data-id="reg_done">
+      <span class="ach-icon">🔑</span>
+      <h3>Регистрация пройдена</h3>
+      <p>Твой профиль создан. Добро пожаловать в RCBaing.</p>
+      <span id="reg_done_badge" class="ach-status locked">Не получено</span>
+    </div>
+
+    <div class="ach-card" data-id="profile_done">
+      <span class="ach-icon">👤</span>
+      <h3>Профиль заполнен</h3>
+      <p>Все основные данные на месте — имя, почта, телефон.</p>
+      <span id="profile_done_badge" class="ach-status locked">Не получено</span>
+    </div>
+
+    <div class="ach-card" data-id="ant_nick_done">
+      <span class="ach-icon">🐜</span>
+      <h3>Ник Ant Legion указан</h3>
+      <p>Твой ник ArtPlayHD теперь часть твоего профиля.</p>
+      <span id="ant_nick_done_badge" class="ach-status locked">Не получено</span>
+    </div>
+
+    <div class="ach-card" data-id="theme_done">
+      <span class="ach-icon">☀️🌙</span>
+      <h3>Тема выбрана</h3>
+      <p>Ты выбрал тёмную или светлую тему оформления.</p>
+      <span id="theme_done_badge" class="ach-status locked">Не получено</span>
+    </div>
+
+    <div class="ach-card" data-id="status_done">
+      <span class="ach-icon">⚡</span>
+      <h3>Статус игрока установлен</h3>
+      <p>Твой статус в Ant Legion теперь виден в профиле.</p>
+      <span id="status_done_badge" class="ach-status locked">Не получено</span>
+    </div>
+
+    <div class="ach-card" data-id="minecraft_download_done">
+      <span class="ach-icon">💾</span>
+      <h3>Скачал установщик Minecraft</h3>
+      <p>Ты скачал установщик Minecraft от ArtPlayHD.</p>
+      <span id="minecraft_download_done_badge" class="ach-status locked">Не получено</span>
+    </div>
+
+    <!-- Новые достижения -->
+
+    <div class="ach-card" data-id="mod_installed_done">
+      <span class="ach-icon">🧩</span>
+      <h3>Добро пожаловать!</h3>
+      <p>Ты зашёл на сайт RCBaing</p>
+      <span id="mod_installed_done_badge" class="ach-status locked">Не получено</span>
+    </div>
+
+    <div class="ach-card" data-id="game_launched_done">
+      <span class="ach-icon">🚀</span>
+      <h3>Запустил сайт 5 раз</h3>
+      <p>Ты запускал сайт RCBaing минимум 5 раз — ты активный пользователь!</p>
+      <span id="game_launched_done_badge" class="ach-status locked">Не получено</span>
+    </div>
+
+    <div class="ach-card" data-id="daily_streak_done">
+      <span class="ach-icon">📅</span>
+      <h3>3 дня подряд на сайте</h3>
+      <p>Ты заходил на сайт 3 дня подряд — отличная серия!</p>
+      <span id="daily_streak_done_badge" class="ach-status locked">Не получено</span>
+    </div>
+
+    <div class="ach-card" data-id="feedback_sent_done">
+      <span class="ach-icon">💬</span>
+      <h3>Отправил обратную связь</h3>
+      <p>Ты написал отзыв или баг-репорт — спасибо за помощь проекту!</p>
+      <span id="feedback_sent_done_badge" class="ach-status locked">Не получено</span>
+    </div>
+
+  </div>
+
+  <!-- Кнопка строго внизу -->
+  <div style="margin-top: 30px; text-align: center;">
+    <button id="backBtn" onclick="window.location.href='option_your_page.html'">Назад в настройки</button>
+  </div>
+
+  <!-- Попап: новое достижение -->
+  <dialog id="newAchievementDialog">
+    <h2>Новое достижение!</h2>
+    <p id="newAchText">Поздравляем!</p>
+    <button onclick="document.getElementById('newAchievementDialog').close()">Ок</button>
+  </dialog>
+
+  <script>
+    // Сразу применяем тему, чтобы не мигало
+    const savedTheme = localStorage.getItem('rcbaing_theme') || 'dark';
+    document.body.classList.remove('theme-light', 'theme-dark');
+    document.body.classList.add('theme-' + savedTheme);
+
+    function unlockAchievement(id) {
+      const badge = document.getElementById(id + '_badge');
+      if (!badge) return;
+
+      badge.textContent = 'Получено';
+      badge.className = 'ach-status unlocked';
+
+      // Показываем попап только один раз для этого достижения
+      const alreadySeen = localStorage.getItem('shown_ach_' + id);
+      if (!alreadySeen) {
+        localStorage.setItem('shown_ach_' + id, '1');
+        const dialog = document.getElementById('newAchievementDialog');
+        const text = document.getElementById('newAchText');
+        const title = badge.parentElement.querySelector('h3').textContent;
+        text.textContent = 'Достижение: ' + title;
+        dialog.showModal();
+      }
+    }
+
+    function checkAchievements() {
+      const name = localStorage.getItem('name');
+      const mail = localStorage.getItem('mail');
+      const ph = localStorage.getItem('PH');
+      const antNick = localStorage.getItem('antLegionNick');
+      const theme = localStorage.getItem('rcbaing_theme');
+      const status = localStorage.getItem('antStatus');
+      const downloaded = localStorage.getItem('ach_minecraft_downloaded');
+      const modInstalled = localStorage.getItem('ach_mod_installed');
+      const launchCount = Number(localStorage.getItem('launch_count')) || 0;
+      const streakDays = Number(localStorage.getItem('streak_days')) || 0;
+      const feedbackSent = localStorage.getItem('ach_feedback_sent');
+
+      let unlockedCount = 0;
+
+      if (name) { unlockAchievement('reg_done'); unlockedCount++; }
+      if (name && mail && ph) { unlockAchievement('profile_done'); unlockedCount++; }
+      if (antNick) { unlockAchievement('ant_nick_done'); unlockedCount++; }
+      if (theme) { unlockAchievement('theme_done'); unlockedCount++; }
+      if (status) { unlockAchievement('status_done'); unlockedCount++; }
+      if (downloaded === '1') { unlockAchievement('minecraft_download_done'); unlockedCount++; }
+      if (modInstalled === '1') { unlockAchievement('mod_installed_done'); unlockedCount++; }
+      if (launchCount >= 5) { unlockAchievement('game_launched_done'); unlockedCount++; }
+      if (streakDays >= 3) { unlockAchievement('daily_streak_done'); unlockedCount++; }
+      if (feedbackSent === '1') { unlockAchievement('feedback_sent_done'); unlockedCount++; }
+
+      const total = 10;
+      const percent = Math.floor((unlockedCount / total) * 100);
+      document.getElementById('achievementProgress').style.width = percent + '%';
+      document.getElementById('achievementText').textContent = unlockedCount + ' / ' + total;
+    }
+
+    // Запускаем проверку при загрузке страницы
+    checkAchievements();
+	
+  </script>
+
+  <script>
+    const savedMode = localStorage.getItem('rcbaing_lighting_mode');
+    if (savedMode) {
+      const colors = {
+        'warm-evening': '#f5a66b',
+        'cold-study': '#8bc3ff',
+        'muted-cozy': '#6c5b7b',
+        'neon-accent': '#ff4757',
+        'moonlight': '#a7c9f5',
+        'soft-dawn': '#ffd7ba'
+      };
+      const color = colors[savedMode];
+      if (color) {
+        document.body.style.backgroundColor = color;
+      }
+    }
+  </script>
+</body>
+
+</html>
+

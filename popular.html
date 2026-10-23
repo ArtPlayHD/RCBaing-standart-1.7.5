@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Популярные книги</title>
+    <style>
+        :root {
+            --bg: #1a1a2e;
+            --bg-card: #16213e;
+            --bg-input: #0f3460;
+            --border: #0f3460;
+            --text: #e0e0e0;
+            --text-muted: #8892b0;
+            --accent: #e94560;
+            --accent-hover: #ff6b81;
+            --success: #2ecc71;
+            --success-hover: #27ae60;
+            --warn: #f39c12;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        header h1 {
+            text-align: center;
+            color: var(--accent);
+            text-shadow: 0 0 20px rgba(233, 69, 96, 0.3);
+        }
+
+        .book-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 15px;
+            margin-top: 25px;
+        }
+
+        .book-item {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 18px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+
+        .book-item:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 18px rgba(233, 69, 96, 0.15);
+            border-color: var(--accent);
+        }
+
+        .book-item h3 {
+            margin: 0 0 8px 0;
+            color: var(--accent);
+        }
+    </style>
+</head>
+<body>
+    <h1>Популярные книги</h1>
+    <div class="book-list">
+        <!-- Пример книг -->
+        <div class="book-item">
+            <h3>Название книги 1</h3>
+            <p>Описание книги 1</p>
+        </div>
+        <div class="book-item">
+            <h3>Название книги 2</h3>
+            <p>Описание книги 2</p>
+        </div>
+    </div>
+</body>
+</html>

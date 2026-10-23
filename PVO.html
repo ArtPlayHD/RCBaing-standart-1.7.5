@@ -1,0 +1,425 @@
+<style>
+:root {
+  --bg-dark: #0b0b10;
+  --panel-dark: #14151b;
+  --accent: #ffaa00;        /* фирменный оранжевый */
+  --danger: #ff4444;
+  --success: #4caf50;
+  --text: #e0e0e0;
+  --border: #2a2a35;
+  --grid-gap: 16px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background-color: var(--bg-dark);
+  color: var(--text);
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, "Helvetica Neue", Arial, sans-serif;
+  overflow-x: hidden;
+}
+
+/* --- Общие кнопки --- */
+button {
+  padding: 10px 18px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-weight: 500;
+}
+button:hover {
+  background: var(--accent);
+  color: #000;
+  border-color: var(--accent);
+}
+button.danger { color: var(--danger); border-color: var(--danger); }
+button.danger:hover { background: var(--danger); color: #fff; }
+button.success { color: var(--success); border-color: var(--success); }
+button.success:hover { background: var(--success); color: #000; }
+
+/* --- Второй этаж (floor-2) --- */
+#floor-2 {
+  position: relative;
+  width: 100%;
+  height: 520px;
+  background: radial-gradient(circle at center, #12131a 0%, #0b0b10 100%);
+  overflow: hidden;
+  border-bottom: 2px solid var(--border);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+}
+#floor-2 h2 {
+  padding: 20px;
+  color: var(--text);
+  text-shadow: 0 0 8px rgba(255,170,0,0.3);
+}
+
+#drones-container, #missiles-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none; /* чтобы дроны не мешали кликам по кнопкам */
+}
+
+/* кнопки внутри этажа */
+#change-course, #spawn-missile {
+  position: absolute;
+  bottom: 24px;
+  padding: 12px 24px;
+  z-index: 10;
+}
+#change-course { left: 24px; }
+#spawn-missile { right: 24px; }
+
+/* --- Админ‑панель (простая) --- */
+#simple-admin-panel {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100vw; height: 100vh;
+  background: rgba(10, 10, 15, 0.96);
+  backdrop-filter: blur(6px);
+  z-index: 9998;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  border: 1px solid var(--border);
+}
+#simple-admin-panel h2 { margin-bottom: 24px; color: var(--accent); }
+#simple-admin-panel label { display: block; margin-bottom: 8px; font-size: 0.95rem; color: #aaa; }
+#simple-admin-panel select {
+  width: 100%;
+  max-width: 320px;
+  padding: 10px;
+  background: #1a1b21;
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 6px;
+  font-size: 1rem;
+}
+
+/* Кнопка «Админка» в углу */
+#open-admin {
+  position: fixed;
+  top: 12px; right: 12px;
+  z-index: 9999;
+  background: rgba(20, 20, 27, 0.85);
+  border: 1px solid var(--border);
+  color: var(--accent);
+  padding: 10px 16px;
+}
+#open-admin:hover {
+  background: var(--accent);
+  color: #000;
+  box-shadow: 0 0 12px rgba(255,170,0,0.4);
+}
+
+/* --- Ввод и поля --- */
+input, select, textarea {
+  width: 100%;
+  padding: 10px;
+  background: #1a1b21;
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 6px;
+  font-size: 0.95rem;
+}
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 8px rgba(255,170,0,0.2);
+}
+label { display: block; margin: 8px 0 4px; font-size: 0.9rem; color: #aaa; }
+pre {
+  background: #0f1015;
+  padding: 12px;
+  border: 1px solid #222;
+  border-radius: 6px;
+  color: #0f0; /* зелёный лог */
+  font-size: 0.8rem;
+  max-height: 220px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  margin-top: 8px;
+}
+
+/* --- Адаптив (чтобы на мобильных не ломалось) --- */
+@media (max-width: 768px) {
+  #floor-2 { height: 420px; }
+  #change-course, #spawn-missile {
+    bottom: 12px;
+    left: auto; right: auto;
+    width: 45%;
+  }
+  #change-course { left: 12px; }
+  #spawn-missile { right: 12px; }
+}
+
+</style>
+<body>
+<!-- Кнопка открытия админки -->
+
+
+<!-- Секция «Новый этаж» -->
+<section id="floor-2" class="floor" style="display:none; position:relative; width:100%; height:500px; background:#0f0f12; overflow:hidden; border-bottom:4px solid #333;">
+  <h2 style="color:#fff; padding:20px;">Второй этаж</h2>
+  <div id="drones-container"></div>
+  <div id="missiles-container"></div>
+  <button id="change-course" style="position:absolute; bottom:20px; left:20px; padding:10px 20px;">Сменить курс дронов</button>
+  <button id="spawn-missile" style="position:absolute; bottom:20px; right:20px; padding:10px 20px;">Запустить ракету</button>
+</section>
+
+<!-- Сюда можно добавить кнопку «Перейти на этаж 2» -->
+<button onclick="toggleFloor2()" style="margin:20px;">Перейти на второй этаж</button>
+</body>
+<script>
+(function() {
+  'use strict';
+
+  const drones = [];
+  const missiles = [];
+  let animationFrameId;
+  let isRunning = false;
+
+  // --- Управление этажом ---
+  window.toggleFloor2 = function() {
+    const floor = document.getElementById('floor-2');
+    if (!floor) return;
+    if (floor.style.display === 'none') {
+      floor.style.display = 'block';
+      startFloor2();
+    } else {
+      stopFloor2();
+      floor.style.display = 'none';
+    }
+  };
+
+  function startFloor2() {
+    if (isRunning) return;
+    isRunning = true;
+    spawnDrones();
+    animationFrameId = requestAnimationFrame(animate);
+  }
+
+  function stopFloor2() {
+    isRunning = false;
+    cancelAnimationFrame(animationFrameId);
+    const dc = document.getElementById('drones-container');
+    const mc = document.getElementById('missiles-container');
+    const ec = document.getElementById('effects-container');
+    if (dc) dc.innerHTML = '';
+    if (mc) mc.innerHTML = '';
+    if (ec) ec.innerHTML = '';
+    drones.length = 0;
+    missiles.length = 0;
+  }
+
+  // --- Дроны ---
+  function spawnDrones() {
+    for (let i = 0; i < 99; i++) {
+      const d = createDrone(i);
+      drones.push(d);
+      const container = document.getElementById('drones-container');
+      if (container) container.appendChild(d.el);
+    }
+  }
+
+  function createDrone(index) {
+    const el = document.createElement('div');
+    el.style.position = 'absolute';
+    el.style.width = '24px';
+    el.style.height = '16px';
+    el.style.background = '#ffaa00';
+    el.style.borderRadius = '4px';
+    el.style.left = '-40px';
+    el.style.top = (100 + index * 80) + 'px';
+    el.style.transition = 'none';
+
+    return {
+      el,
+      x: -40,
+      y: 100 + index * 80,
+      speedX: 2 + Math.random() * 1,
+      speedY: (Math.random() > 0.5 ? 1 : -1) * (1 + Math.random() * 0.8),
+      direction: 1
+    };
+  }
+
+  document.getElementById('change-course')?.addEventListener('click', () => {
+    drones.forEach(d => {
+      d.direction *= -1;
+      d.speedY *= -1;
+    });
+  });
+
+  // --- Ракеты ---
+  document.getElementById('spawn-missile')?.addEventListener('click', () => {
+    const m = createMissile();
+    missiles.push(m);
+    const container = document.getElementById('missiles-container');
+    if (container) container.appendChild(m.el);
+  });
+
+  function createMissile() {
+    const el = document.createElement('div');
+    el.style.position = 'absolute';
+    el.style.width = '12px';
+    el.style.height = '20px';
+    el.style.background = '#ff4444';
+    el.style.borderRadius = '4px 4px 8px 8px';
+    const y = 50 + Math.random() * 400;
+    el.style.left = '100%';
+    el.style.top = y + 'px';
+
+    return {
+      el,
+      x: 1100,
+      y,
+      speedX: -3,
+      speedY: 0
+    };
+  }
+
+  // --- Эффекты (вспышка и взрыв) ---
+  function createExplosion(x, y) {
+    const container = document.getElementById('effects-container');
+    if (!container) return;
+
+    const explosion = document.createElement('div');
+    explosion.style.position = 'absolute';
+    explosion.style.width = '0px';
+    explosion.style.height = '0px';
+    explosion.style.backgroundColor = 'rgba(255, 68, 68, 0.9)';
+    explosion.style.boxShadow = '0 0 24px rgba(255, 170, 0, 0.8)';
+    explosion.style.borderRadius = '50%';
+    explosion.style.left = (x - 20) + 'px';
+    explosion.style.top = (y - 20) + 'px';
+    explosion.style.zIndex = '5';
+    container.appendChild(explosion);
+
+    // Анимация через JS (расширение и исчезновение)
+    let size = 0;
+    const maxSize = 60;
+    const duration = 300; // мс
+    const start = performance.now();
+
+    function animateExplosion(t) {
+      const progress = Math.min((t - start) / duration, 1);
+      size = Math.floor(progress * maxSize);
+      explosion.style.transform = `scale(${progress * 2})`;
+      explosion.style.opacity = 1 - progress;
+      explosion.style.width = size + 'px';
+      explosion.style.height = size + 'px';
+
+      if (progress < 1) {
+        requestAnimationFrame(animateExplosion);
+      } else {
+        explosion.remove();
+      }
+    }
+    requestAnimationFrame(animateExplosion);
+  }
+
+  function createFlash(x, y) {
+    const container = document.getElementById('effects-container');
+    if (!container) return;
+
+    const flash = document.createElement('div');
+    flash.style.position = 'absolute';
+    flash.style.width = '80px';
+    flash.style.height = '80px';
+    flash.style.backgroundColor = 'rgba(255, 255, 255, 0.7)';
+    flash.style.borderRadius = '50%';
+    flash.style.left = (x - 40) + 'px';
+    flash.style.top = (y - 40) + 'px';
+    flash.style.pointerEvents = 'none';
+    flash.style.zIndex = '6';
+    container.appendChild(flash);
+
+    setTimeout(() => {
+      flash.remove();
+    }, 120);
+  }
+
+  // --- Перехват и столкновения ---
+  function checkCollisions() {
+    // Проходим с конца, чтобы корректно удалять элементы
+    for (let i = missiles.length - 1; i >= 0; i--) {
+      const m = missiles[i];
+      let hit = false;
+      let hitX = m.x + 6;
+      let hitY = m.y + 10;
+
+      for (let j = drones.length - 1; j >= 0; j--) {
+        const d = drones[j];
+        if (rectIntersect(d.x, d.y, 24, 16, m.x, m.y, 12, 20)) {
+          hit = true;
+          hitX = d.x + 12;
+          hitY = d.y + 8;
+
+          // Удаляем дрон
+          d.el.remove();
+          drones.splice(j, 1);
+          break; // один дрон — одна ракета
+        }
+      }
+
+      if (hit) {
+        // Удаляем ракету
+        m.el.remove();
+        missiles.splice(i, 1);
+
+        // Вспышка + взрыв
+        createFlash(hitX, hitY);
+        createExplosion(hitX, hitY);
+      }
+    }
+  }
+
+  function rectIntersect(x1, y1, w1, h1, x2, y2, w2, h2) {
+    return !(x1 + w1 <= x2 || x2 + w2 <= x1 || y1 + h1 <= y2 || y2 + h2 <= y1);
+  }
+
+  // --- Анимация ---
+  function animate() {
+    if (!isRunning) return;
+
+    // Движение дронов
+    drones.forEach(d => {
+      d.x += d.speedX;
+      d.y += d.speedY * d.direction;
+
+      if (d.y <= 0 || d.y >= 500) {
+        d.direction *= -1;
+      }
+      if (d.x > 1200) {
+        d.x = -40;
+      }
+
+      d.el.style.left = d.x + 'px';
+      d.el.style.top = d.y + 'px';
+    });
+
+    // Движение ракет
+    for (let i = missiles.length - 1; i >= 0; i--) {
+      const m = missiles[i];
+      m.x += m.speedX;
+      m.el.style.left = m.x + 'px';
+      if (m.x < -50) {
+        m.el.remove();
+        missiles.splice(i, 1);
+      }
+    }
+
+    checkCollisions();
+
+    animationFrameId = requestAnimationFrame(animate);
+  }
+})();
+
+</script>

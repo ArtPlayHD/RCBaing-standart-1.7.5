@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Каталог мини-игр</title>
+    <style>
+        :root {
+            --bg: #0f1115;
+            --card: #1a1d24;
+            --accent: #57ab2a;
+            --accent-hover: #458b20;
+            --text: #e0e0e8;
+            --text-muted: #a0a0b0;
+        }
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+        }
+        header {
+            padding: 20px 30px;
+            border-bottom: 1px solid #2a2e38;
+        }
+        h1 {
+            margin: 0 0 10px 0;
+            font-weight: 600;
+        }
+        .controls {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        #searchInput {
+            padding: 10px 14px;
+            background: var(--card);
+            border: 1px solid #333;
+            color: var(--text);
+            border-radius: 6px;
+            width: 240px;
+        }
+        #searchInput:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+        main {
+            padding: 30px;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+        }
+        .game-card {
+            background: var(--card);
+            padding: 18px;
+            border-radius: 10px;
+            border: 1px solid #252930;
+            transition: transform 0.15s, box-shadow 0.2s;
+        }
+        .game-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+        }
+        .game-title {
+            font-size: 1.2em;
+            margin: 0 0 6px 0;
+            font-weight: 600;
+        }
+        .game-desc {
+            color: var(--text-muted);
+            line-height: 1.4;
+            margin-bottom: 16px;
+            font-size: 0.95em;
+        }
+        .actions {
+            display: flex;
+            gap: 8px;
+        }
+        button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: background 0.2s;
+        }
+        .btn-play {
+            background: var(--accent);
+            color: #000;
+            font-weight: 600;
+        }
+        .btn-play:hover {
+            background: var(--accent-hover);
+        }
+        .btn-fav {
+            background: transparent;
+            color: var(--text-muted);
+            border: 1px solid #333;
+        }
+        .btn-fav.active {
+            color: #ffaa00;
+            border-color: #ffaa00;
+        }
+        .status-badge {
+            font-size: 0.8em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #666;
+            margin-top: 8px;
+            display: block;
+        }
+        .no-results {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 40px;
+            color: var(--text-muted);
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>Мини-игры</h1>
+    <div class="controls">
+        <input type="text" id="searchInput" placeholder="Поиск игры...">
+        <button onclick="toggleFavDisplay()" title="Показать только избранное">Фильтр: избранное</button>
+    </div>
+</header>
+
+<main>
+    <div class="grid" id="gamesGrid">
+        <!-- Карточки будут добавлены через JS -->
+    </div>
+</main>
+
+<script>
+    // Каталог игр (можно расширять)
+    const games = [
+        {
+            id: 'creeper-farm',
+            title: 'Крипер на ферме',
+            desc: 'Убивай криперов, пока не вышло время. Набирай очки и ставь рекорды.',
+            status: 'готово',
+            url: 'index.html' // сюда можно подставить реальный путь
+        },
+        {
+            id: 'survival-100',
+            title: 'Minecraft: Выжить 100 дней',
+            desc: 'Текстовый симулятор выживания: ресурсы, постройки, ночные монстры.',
+            status: 'в разработке'
+        },
+        {
+            id: 'zombie-village',
+            title: 'Зомби-апокалипсис: Деревня',
+            desc: 'Собери группу выживших, защити деревню и найди выход из зоны.',
+            status: 'прототип'
+        },
+        {
+            id: 'nfs-style-race',
+            title: 'Гонка в стиле NFS Most Wanted',
+            desc: 'Аркадные заезды, дрифт и обгон трафика на городских улицах.',
+            status: 'идея'
+        }
+    ];
+
+    const grid = document.getElementById('gamesGrid');
+    const searchInput = document.getElementById('searchInput');
+    let showFavoritesOnly = false;
+
+    function renderGames(list) {
+        grid.innerHTML = '';
+        if (list.length === 0) {
+            grid.innerHTML = '<div class="no-results">Ничего не найдено</div>';
+            return;
+        }
+
+        list.forEach(game => {
+            const isFav = JSON.parse(localStorage.getItem('fav_' + game.id) || 'false');
+            const card = document.createElement('div');
+            card.className = 'game-card';
+            card.innerHTML = `
+                <div>
+                    <h3 class="game-title">${escapeHtml(game.title)}</h3>
+                    <p class="game-desc">${escapeHtml(game.desc)}</p>
+                    <span class="status-badge">${game.status}</span>
+                </div>
+                <div class="actions">
+                    <button class="btn-play" onclick="goToGame('${game.url}')">Запустить</button>
+                    <button class="btn-fav ${isFav ? 'active' : ''}" onclick="toggleFavorite('${game.id}', this)">
+                        ${isFav ? '★ В избранном' : '☆ В избранное'}
+                    </button>
+                </div>
+            `;
+            grid.appendChild(card);
+        });
+    }
+
+    function toggleFavorite(id, btn) {
+        const isFav = JSON.parse(localStorage.getItem('fav_' + id) || 'false');
+        localStorage.setItem('fav_' + id, String(!isFav));
+        renderGames(getFilteredList());
+    }
+
+    function getFilteredList() {
+        if (!showFavoritesOnly) return games;
+        return games.filter(g => JSON.parse(localStorage.getItem('fav_' + g.id) || 'false'));
+    }
+
+    function toggleFavDisplay() {
+        showFavoritesOnly = !showFavoritesOnly;
+        renderGames(getFilteredList());
+    }
+
+    searchInput.addEventListener('input', (e) => {
+        const q = e.target.value.toLowerCase();
+        const filtered = games.filter(g =>
+            g.title.toLowerCase().includes(q) ||
+            g.desc.toLowerCase().includes(q)
+        );
+        renderGames(filtered);
+    });
+
+    function goToGame(url) {
+        // Если url пустой — можно показать заглушку или открыть модальное окно
+        if (!url || url === '') {
+            alert('Эта игра ещё не готова к запуску.');
+            return;
+        }
+        window.location.href = url;
+    }
+
+    function escapeHtml(str) {
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+    }
+
+    // Первый рендер
+    renderGames(games);
+</script>
+
+</body>
+</html>

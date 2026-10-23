@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <title>RCB Search</title>
+  <style>
+    :root {
+      --bg: #121212;
+      --panel: #1e1e1e;
+      --text: #e0e0e0;
+      --blue: #00aaff;
+      --red: #ff4d4d;
+      --border: #333;
+    }
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: system-ui, Segoe UI, Roboto, Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+    }
+    .search-container {
+      width: 100%;
+      max-width: 600px;
+      padding: 2rem;
+    }
+    .search-box-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+    input[type="text"] {
+      width: 100%;
+      padding: 1rem 1.5rem 1rem 3.5rem;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--panel);
+      color: var(--text);
+      font-size: 1.1rem;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    input:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 8px rgba(0, 170, 255, 0.3);
+    }
+    .search-icon {
+      position: absolute;
+      left: 12px;
+      color: #888;
+      pointer-events: none;
+    }
+    button.search-btn {
+      position: absolute;
+      right: 8px;
+      padding: 0.7rem 1.4rem;
+      background: var(--red);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: background 0.2s, transform 0.1s;
+    }
+    button:hover {
+      background: #cc0000;
+    }
+    button:active {
+      transform: scale(0.98);
+    }
+    .results {
+      margin-top: 1.5rem;
+      text-align: left;
+    }
+    .result-item {
+      padding: 0.8rem 0;
+      border-bottom: 1px solid #2a2a2a;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+    .result-item:hover {
+      opacity: 0.9;
+    }
+    .result-title {
+      font-weight: 700;
+      color: var(--blue);
+    }
+    .result-desc {
+      color: #aaa;
+      font-size: 0.9rem;
+      line-height: 1.3;
+      margin-top: 0.2rem;
+    }
+    .highlight {
+      color: var(--red);
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <div class="search-container">
+    <div class="search-box-wrapper">
+      <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="11" cy="11" r="8"></circle>
+        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+      </svg>
+      <input type="text" id="query" placeholder="Что ищем в RCBaing?.." autocomplete="off" />
+      <button class="search-btn" id="searchBtn">Найти</button>
+    </div>
+    <div class="results" id="results"></div>
+  </div>
+<!--       <button onclick="window.location.href='Mail.html'">Почта</button>
+      <button onclick="window.location.href='setup.html'">Скачать Minecraft</button>
+      <button onclick="location.href='game.html'">Игра «Крипер на ферме»</button>
+      <button onclick="window.location.href='Info.html'">Поиск 2.0(Устарело)</button>
+      <button onclick="window.location.href='Music_setup.html'">Слушать музыку</button>
+      <button onclick="window.location.href='game3.html'">Minecraft-RCBaing edition</button>
+      <button onclick="window.location.href='BDF_G.html'">Книги издательства «Рукопись не горит!»</button>
+	  <button onclick="window.location.htef='PVO.html'">Пункт ПВО</button>
+      <button onclick="window.location.href='tactics-floor.html'">Тактика Ant Legion</button>
+	  <button onclick="window.location.href='reg.html'">Войти / Зарегистрироваться</button>
+	  <button onclick="window.location.href='ant_house.html'">Ant Legion</button>
+	  <button onclick="window.location.href='flower-alley.html'">Аллея цветов</button>
+	  <button onclick="window.location.href='space-floor.html'">Космическая-станция</button>
+	  
+
+	  <button onclick="window.location.href='rcb-legacy.html'">Мир-RCB</button>
+	  <button onclick="window.location.href='Program.html'">ПРОЕКТЫ</button>--!>
+  <script>
+    const index = [
+      { title: "RCB:Infinity world", desc: "Игра про Строителей и выживание в этом мире...", path: "rcb-legacy.html" },
+      { title: "Регистрация", desc: "Регистрация в личном кабинете RCBaing", path: "reg.html" },
+      { title: "Профиль", desc: "Ваш профиль на сайте RCBaing|Вход", path: "Your_page.html" },	
+      { title: "Почта", desc: "Ваша почта на сайте RCBaing", path: "admin.html" },
+	  { title: "Рукопись не горит!", desc: "Книги фирмы.Главная страница Сраниц Рукопись Не Горит", path: "BDF_F.html" },
+      { title: "Скачать Minecraft", desc: "Скачайте майнкрафт", path: "Setup.html" },	
+      { title: "Тихий уголок", desc: "Ваш личный уютный уголок сайта RCBaing", path: "Your.html" },	
+      { title: "Главная страница RCBaing", desc: "Перезагрузка|Главная страница сайта RCBaing", path: "index.html" },	
+      { title: "Космическая-станция RCBaing", desc: "Космическая-станция", path: "space-floor.html" },	
+      { title: "Тактика Ant Legion", desc: "Тактика Ant Legion", path: "tactics-floor.html" },	
+      { title: "Minecraft-RCBaing edition", desc: "Minecraft-RCBaing edition Думай,прежде чем писать!", path: "game3.html" },
+      { title: "Музыка RCBaing", desc: "Слушай музыку - релаксируй на сайте RCBaing!", path: "Music_setup.html" },
+      { title: "Игра крипер на ферме", desc: "Поймай как можно больше криперов и спаси ферму!", path: "game.html" },  
+      { title: "Информация для программистов", desc: "Читай статьи о программировании и узнавай новое на этом этаже!", path: "Program_help.html" },
+      { title: "Жилой этаж RCBaing", desc: "Гладь кота и любуйся своей комнатой!", path: "Container.html" },	  
+	];
+
+    const queryInput = document.getElementById('query');
+    const searchBtn = document.getElementById('searchBtn');
+    const resultsBox = document.getElementById('results');
+
+    function escapeHtml(str) {
+      return str.replace(/[&<>"]/g, s => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[s]));
+    }
+
+    function highlightMatches(text, query) {
+      if (!query) return text;
+      const regex = new RegExp(`(${escapeRegex(query)})`, 'gi');
+      return text.replace(regex, '<span class="highlight">$1</span>');
+    }
+
+    function escapeRegex(string) {
+      return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+
+    function search() {
+      const q = queryInput.value.trim();
+      if (!q) {
+        resultsBox.innerHTML = '';
+        return;
+      }
+
+      const lowerQ = q.toLowerCase();
+
+      const matches = index.filter(item =>
+        item.title.toLowerCase().includes(lowerQ) ||
+        item.desc.toLowerCase().includes(lowerQ)
+      );
+
+      if (matches.length === 0) {
+        resultsBox.innerHTML = '<div style="color:#aaa">Ничего не найдено по запросу “' + escapeHtml(q) + '”</div>';
+        return;
+      }
+
+      resultsBox.innerHTML = matches.map(item => `
+        <div class="result-item" onclick="location.href='${escapeHtml(item.path)}'">
+          <div class="result-title">${highlightMatches(escapeHtml(item.title), q)}</div>
+          <div class="result-desc">${highlightMatches(escapeHtml(item.desc), q)}</div>
+        </div>
+      `).join('');
+    }
+
+    searchBtn.addEventListener('click', search);
+    queryInput.addEventListener('keydown', e => {
+      if (e.key === 'Enter') search();
+    });
+  </script>
+</body>
+</html>

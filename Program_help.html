@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <title>RCBaing — Этаж 2</title>
+  <style>
+    :root {
+      --bg: #0b0b0b;
+      --panel: #151515;
+      --text: #e0e0e0;
+      --blue: #00aaff;
+      --red: #ff4d4d;
+      --border: #333;
+      --accent: var(--red);
+    }
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: system-ui, Segoe UI, Roboto, Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+
+    /* Верхняя панель — «лифт/лестница» */
+    .floor-header {
+      padding: 1rem 2rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(0,0,0,0.6);
+    }
+    .floor-label {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: var(--blue);
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+    .nav-buttons button {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 0.4rem 0.8rem;
+      cursor: pointer;
+      border-radius: 4px;
+      transition: all 0.2s;
+    }
+    .nav-buttons button:hover {
+      border-color: var(--blue);
+      color: var(--blue);
+    }
+    .nav-buttons .up:hover { border-color: #fff; color: #fff; }
+    .nav-buttons .down:hover { border-color: var(--accent); color: var(--accent); }
+
+    .container {
+      max-width: 1200px;
+      margin: 2rem auto;
+      padding: 0 1rem;
+    }
+
+    h1 {
+      margin-top: 0;
+      font-weight: 600;
+      color: #fff;
+    }
+
+    /* Сетка карточек */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 1.5rem;
+      margin-top: 1.5rem;
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid #222;
+      border-radius: 8px;
+      padding: 1.2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 24px rgba(0, 170, 255, 0.12);
+      border-color: var(--blue);
+    }
+
+    .card-title {
+      font-weight: 700;
+      color: var(--blue);
+      margin: 0;
+    }
+    .card-desc {
+      color: #aaa;
+      font-size: 0.92rem;
+      line-height: 1.4;
+      flex-grow: 1;
+    }
+    .card-tags {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-top: 0.5rem;
+    }
+    .tag {
+      font-size: 0.75rem;
+      padding: 3px 8px;
+      border-radius: 4px;
+      background: #222;
+      color: #ccc;
+    }
+    .tag.arduino { background: #1a2a1a; color: #8fc31f; }
+    .tag.python { background: #1a1a22; color: #ffd43b; }
+    .tag.web { background: #1a1a22; color: var(--blue); }
+    .tag.mod { background: #1a1a22; color: var(--accent); }
+
+    .btn-action {
+      margin-top: auto;
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      cursor: pointer;
+      text-align: left;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .btn-action:hover {
+      border-color: var(--blue);
+      color: var(--blue);
+    }
+
+    /* Подвал этажа */
+    .floor-footer {
+      padding: 2rem 2rem 1rem;
+      border-top: 1px solid var(--border);
+      color: #666;
+      font-size: 0.9rem;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+  <header class="floor-header">
+    <div class="floor-label">Этаж "Инфо для программистов": Инструменты и моды</div>
+    <div class="nav-buttons">
+      <!-- Сюда подставь реальные пути -->
+      <button class="up" onclick="location.href='index.html'">↓ На этаж ниже</button>
+      <button class="down" onclick="location.href='Search1.7.5.html'">↑ На этаж выше</button>
+    </div>
+  </header>
+
+  <main class="container">
+    <h1>Технические проекты и расширения</h1>
+    <p style="color:#aaa">Библиотеки, моды, Arduino-проекты, редакторы и утилиты для разработки.</p>
+
+    <section class="grid">
+      <!-- Карточка: SimplePy 2.0 -->
+      <article class="card">
+        <h3 class="card-title">SimplePy 2.0</h3>
+        <p class="card-desc">Библиотека утилит и шпаргалок для Python‑проектов. Включает easyprint, simplepy_ext.py, готовые шаблоны и примеры.</p>
+        <div class="card-tags">
+          <span class="tag python">Python</span>
+          <span class="tag">Библиотека</span>
+        </div>
+        <button class="btn-action" onclick="location.href='simplepy.html'">Открыть документацию</button>
+      </article>
+
+      <!-- Карточка: RCB-Pad++ -->
+      <article class="card">
+        <h3 class="card-title">RCB-Pad++</h3>
+        <p class="card-desc">Редактор кода для твоих проектов. Подсветка синтаксиса, автодополнение, быстрый запуск скриптов и интеграция с SimplePy.</p>
+        <div class="card-tags">
+          <span class="tag web">Web</span>
+          <span class="tag">Редактор</span>
+        </div>
+        <button class="btn-action" onclick="location.href='pad.html'">Попробовать</button>
+      </article>
+
+      <!-- Карточка: Arduino-проекты -->
+      <article class="card">
+        <h3 class="card-title">Arduino: TFT и EEPROM</h3>
+        <p class="card-desc">Готовые скетчи: чёрно‑белый TFT, цветной TFT, EEPROM для хранения данных после перезагрузки, счётчики и пранки.</p>
+        <div class="card-tags">
+          <span class="tag arduino">Arduino</span>
+          <span class="tag">TFT</span>
+          <span class="tag">EEPROM</span>
+        </div>
+        <button class="btn-action" onclick="location.href='arduino.html'">Смотреть проекты</button>
+      </article>
+
+      <!-- Карточка: Моды RCBaing -->
+      <article class="card">
+        <h3 class="card-title">Моды и расширения</h3>
+        <p class="card-desc">RCBaing-моды: новые механики, админ‑панели, интеграции. Включая моды для Minecraft_graphic и RCB: Infinite World.</p>
+        <div class="card-tags">
+          <span class="tag mod">Мод</span>
+          <span class="tag">RCBaing</span>
+        </div>
+        <button class="btn-action" onclick="location.href='mods.html'">Список модов</button>
+      </article>
+
+      <!-- Карточка: BAT-установщики -->
+      <article class="card">
+        <h3 class="card-title">BAT-установщики</h3>
+        <p class="card-desc">Готовые скрипты для установки Python‑окружения, Pygame, pyglet, NumPy и других библиотек под Windows.</p>
+        <div class="card-tags">
+          <span class="tag">Windows</span>
+          <span class="tag">BAT</span>
+        </div>
+        <button class="btn-action" onclick="location.href='bat.html'">Скачать/инструкция</button>
+      </article>
+
+      <!-- Карточка: RPG-конструктор на SimplePy -->
+      <article class="card">
+        <h3 class="card-title">RPG-конструктор (SimplePy)</h3>
+        <p class="card-desc">Набор шаблонов и готовых модулей для создания RPG на SimplePy: инвентарь, диалоги, квесты, сохранение прогресса.</p>
+        <div class="card-tags">
+          <span class="tag python">Python</span>
+          <span class="tag">RPG</span>
+        </div>
+        <button class="btn-action" onclick="location.href='rpg.html'">Начать сборку</button>
+      </article>
+    </section>
+  </main>
+
+  <footer class="floor-footer">
+    RCBaing © 2026 — Этаж 2. Все проекты в стиле RCB.
+  </footer>
+
+</body>
+</html>

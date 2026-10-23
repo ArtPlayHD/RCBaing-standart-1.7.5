@@ -1,0 +1,1743 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>RCB: World of Builders — Expanded</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    :root { --accent:#ff6b81; --text:#fff; --muted:#a0a0b0; }
+    body {
+      background:#0f1115; color:var(--text); font-family:system-ui,sans-serif;
+      display:flex; flex-direction:column; align-items:center; min-height:100vh; overflow:hidden;
+    }
+    #gameCanvas { display:block; cursor:crosshair; }
+    #ui { position:absolute; top:0; left:0; right:0; pointer-events:none; z-index:10; }
+    .panel {
+      position:absolute; background:rgba(15,17,21,0.85);
+      border:1px solid rgba(255,255,255,0.12); border-radius:10px;
+      padding:10px 14px; backdrop-filter:blur(6px); pointer-events:auto;
+    }
+    #hudPanel { top:12px; left:12px; min-width:210px; }
+    #minimapPanel { top:12px; right:12px; }
+    #zonePanel { bottom:12px; left:12px; }
+    #controlsPanel { bottom:12px; right:12px; font-size:0.75rem; color:var(--muted); }
+    .bar { height:8px; border-radius:4px; background:rgba(0,0,0,0.5); margin:3px 0; overflow:hidden; }
+    .bar-fill { height:100%; border-radius:4px; transition:width 0.2s; }
+    .stat-row { display:flex; justify-content:space-between; font-size:0.8rem; margin:2px 0; }
+    .stat-label { color:var(--muted); }
+    .stat-val { color:var(--accent); font-weight:700; }
+    #dialogue { display:none; top:50%; left:50%; transform:translate(-50%,-50%); max-width:420px; text-align:center; }
+    #dialogue h3 { color:var(--accent); margin-bottom:8px; }
+    #dialogue p { color:var(--text); line-height:1.5; margin-bottom:12px; }
+    #dialogue .choices { display:flex; flex-direction:column; gap:6px; }
+    .choice-btn {
+      background:rgba(255,107,129,0.15); border:1px solid var(--accent);
+      color:var(--text); padding:8px 16px; border-radius:6px; cursor:pointer;
+      font-size:0.9rem; transition:all 0.2s;
+    }
+    .choice-btn:hover { background:var(--accent); color:#000; }
+    #selectScreen {
+      position:fixed; top:0; left:0; right:0; bottom:0;
+      background:rgba(15,17,21,0.98); z-index:1000;
+      display:flex; flex-direction:column; align-items:center; justify-content:center; padding:20px;
+    }
+    #selectScreen h1 { font-size:1.8rem; margin-bottom:6px; }
+    #selectScreen p { color:var(--muted); margin-bottom:20px; max-width:500px; text-align:center; }
+    .builders-row { display:grid; grid-template-columns:repeat(auto-fill,minmax(130px,1fr)); gap:10px; max-width:680px; }
+    .builder-tile { background:rgba(255,255,255,0.06); border:2px solid rgba(255,255,255,0.12);
+      border-radius:12px; padding:14px; text-align:center; cursor:pointer; transition:all 0.2s; }
+    .builder-tile:hover { border-color:var(--accent); transform:translateY(-4px); }
+    .builder-tile.selected { border-color:var(--accent); box-shadow:0 8px 24px rgba(255,107,129,0.3); }
+    .builder-tile .bname { font-weight:700; margin:4px 0; }
+    .builder-tile .bdomain { font-size:0.75rem; color:var(--muted); }
+    .builder-tile .bbonus { font-size:0.7rem; color:var(--accent); margin-top:4px; }
+    #startBtn { margin-top:20px; background:var(--accent); color:#000; border:none;
+      padding:14px 40px; border-radius:10px; font-weight:700; font-size:1.1rem; cursor:pointer; }
+    #gameOverScreen {
+      position:fixed; top:0; left:0; right:0; bottom:0;
+      background:rgba(15,17,21,0.95); z-index:1000; display:none;
+      flex-direction:column; align-items:center; justify-content:center;
+    }
+    #gameOverScreen h1 { font-size:2rem; margin-bottom:12px; }
+    #gameOverScreen p { color:var(--muted); margin-bottom:20px; text-align:center; max-width:400px; }
+    #retryBtn { background:var(--accent); color:#000; border:none; padding:14px 36px;
+      border-radius:10px; font-weight:700; font-size:1.1rem; cursor:pointer; }
+    .toast {
+      position:fixed; top:60px; left:50%; transform:translateX(-50%);
+      background:rgba(255,107,129,0.9); color:#000; padding:8px 20px;
+      border-radius:6px; font-weight:600; z-index:2000; opacity:0; transition:opacity 0.3s;
+    }
+    .toast.show { opacity:1; }
+    #inventoryPanel { top:140px; right:12px; min-width:160px; display:none; }
+    .inv-item { display:flex; justify-content:space-between; font-size:0.78rem; margin:3px 0; }
+    .inv-count { color:var(--accent); font-weight:700; }
+    #bossBar {
+      position:absolute; top:50px; left:50%; transform:translateX(-50%);
+      width:400px; display:none;
+    }
+    #bossBar .bname { text-align:center; color:#ff6b81; font-weight:700; font-size:0.9rem; margin-bottom:4px; }
+    #bossBar .bar { height:12px; }
+  </style>
+</head>
+<body>
+
+<div id="selectScreen">
+  <h1>RCB: World of Builders</h1>
+  <p>Мега-мир: деревня, равнины, тёмный лес, пещеры, шахты, аллея цветов, пустоши, Эндер. Боссы, големы, жители, ресурсы. Выбери наследие Строителя.</p>
+  <div class="builders-row" id="buildersRow"></div>
+  <button id="startBtn" onclick="startGame()">Войти в мир</button>
+</div>
+
+<canvas id="gameCanvas"></canvas>
+
+<div id="ui">
+  <div class="panel" id="hudPanel">
+    <div class="stat-row"><span class="stat-label">HP</span><span class="stat-val" id="hudHP">100</span></div>
+    <div class="bar"><div class="bar-fill" id="hpBar" style="background:#52be80; width:100%"></div></div>
+    <div class="stat-row"><span class="stat-label">Энергия</span><span class="stat-val" id="hudEnergy">100%</span></div>
+    <div class="bar"><div class="bar-fill" id="energyBar" style="background:#4ab8ff; width:100%"></div></div>
+    <div class="stat-row"><span class="stat-label">Наследие</span><span class="stat-val" id="hudLegacy">—</span></div>
+    <div class="stat-row"><span class="stat-label">Убийств</span><span class="stat-val" id="hudKills">0</span></div>
+  </div>
+
+  <div class="panel" id="minimapPanel">
+    <canvas id="minimap" width="180" height="140"></canvas>
+  </div>
+
+  <div class="panel" id="zonePanel">
+    <div class="stat-row"><span class="stat-label">Локация</span><span class="stat-val" id="hudZone">Деревня</span></div>
+    <div class="stat-row"><span class="stat-label">Погода</span><span class="stat-val" id="hudWeather">Ясно</span></div>
+  </div>
+
+  <div class="panel" id="inventoryPanel">
+    <div class="stat-row"><span class="stat-label" style="font-weight:700">Инвентарь</span></div>
+    <div id="invList"></div>
+  </div>
+
+  <div id="bossBar">
+    <div class="bname" id="bossName">Босс</div>
+    <div class="bar"><div class="bar-fill" id="bossHpBar" style="background:#ff4757; width:100%"></div></div>
+  </div>
+
+  <div class="panel" id="controlsPanel">
+    <b>WASD</b> — движение · <b>ЛКМ</b> — атака · <b>ПКМ</b> — блок · <b>Пробел</b> — спец · <b>E</b> — выстрел · <b>F</b> — взаимодействие · <b>Tab</b> — карта
+  </div>
+
+  <div class="panel" id="dialogue">
+    <h3 id="dlgTitle">NPC</h3>
+    <p id="dlgText"></p>
+    <div class="choices" id="dlgChoices"></div>
+  </div>
+</div>
+
+<div id="gameOverScreen">
+  <h1 id="goTitle">Поражение</h1>
+  <p id="goText">Ты пал в мире RCB.</p>
+  <button id="retryBtn" onclick="respawn()">Возродиться в деревне</button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ============================================================
+//  RCB: WORLD OF BUILDERS — EXPANDED EDITION
+// ============================================================
+
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const mm = document.getElementById('minimap');
+const mmx = mm.getContext('2d');
+function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+resize();
+window.addEventListener('resize', resize);
+const W = () => canvas.width;
+const H = () => canvas.height;
+const rand = (a,b) => Math.random()*(b-a)+a;
+const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
+const dist = (a,b) => Math.hypot(a.x-b.x, a.y-b.y);
+
+// --- Строители ---
+const BUILDERS = [
+  { id:'ignis', name:'Игнис', color:'#ff5a4a', icon:'🔥', domain:'Огонь', bonus:'+30% урон, огн. атаки', spd:3.5, hp:100 },
+  { id:'aqua', name:'Аква', color:'#4ab8ff', icon:'💧', domain:'Вода', bonus:'Иммун. к яду, +15% скорость', spd:4.0, hp:100 },
+  { id:'terra', name:'Терра', color:'#8b7355', icon:'⛰️', domain:'Земля', bonus:'+25% защита', spd:3.0, hp:125 },
+  { id:'aer', name:'Аэр', color:'#88cfff', icon:'💨', domain:'Воздух', bonus:'+25% уклонение', spd:4.5, hp:90 },
+  { id:'lux', name:'Люкс', color:'#ffd700', icon:'✨', domain:'Свет', bonus:'+20% крит, ослепление', spd:3.5, hp:100 },
+  { id:'umbra', name:'Умбра', color:'#6a4a7a', icon:'🌑', domain:'Тьма', bonus:'x1.5 по оглушённым', spd:3.5, hp:95 },
+  { id:'vita', name:'Вита', color:'#5b9a5b', icon:'🌿', domain:'Жизнь', bonus:'Регенерация +2 HP/сек', spd:3.5, hp:110 }
+];
+
+// ============================================================
+//  МИР — КАРТА 8000 x 6000
+// ============================================================
+const WORLD_W = 8000, WORLD_H = 6000;
+
+const ZONES = [
+  // --- Деревня (большая) ---
+  { id:'village', name:'Деревня RCB', x:0, y:0, w:2400, h:2000,
+    color:'#2a3a2a', danger:0, type:'village' },
+
+  // --- Равнины ---
+  { id:'plains', name:'Равнины', x:2400, y:0, w:2000, h:1600,
+    color:'#3a3a2a', danger:1, type:'field' },
+
+  // --- Тёмный лес ---
+  { id:'forest', name:'Тёмный лес', x:4400, y:0, w:2400, h:2000,
+    color:'#1a2a1a', danger:2, type:'forest' },
+
+  // --- Аллея цветов ---
+  { id:'flowers', name:'Аллея цветов', x:2400, y:1600, w:1600, h:1200,
+    color:'#2a2a3a', danger:0, type:'garden' },
+
+  // --- Кристальные пещеры ---
+  { id:'caves', name:'Кристальные пещеры', x:0, y:2000, w:2000, h:1600,
+    color:'#1a1a2a', danger:2, type:'cave' },
+
+  // --- Шахты (уголь, железо) ---
+  { id:'mines', name:'Шахты RCB', x:2000, y:2800, w:2200, h:1800,
+    color:'#1a1a1a', danger:2, type:'mine' },
+
+  // --- Пустоши ---
+  { id:'wastes', name:'Пустоши', x:4400, y:2000, w:2000, h:1600,
+    color:'#3a2a1a', danger:3, type:'waste' },
+
+  // --- Дальние равнины ---
+  { id:'far_plains', name:'Дальние равнины', x:6400, y:0, w:1600, h:2400,
+    color:'#3a4a2a', danger:2, type:'field' },
+
+  // --- Великая пустыня ---
+  { id:'desert', name:'Великая пустыня', x:6400, y:2400, w:1600, h:1600,
+    color:'#4a3a1a', danger:3, type:'desert' },
+
+  // --- Эндер (отдельный мир, доступен через портал) ---
+  { id:'end', name:'Эндер', x:0, y:4000, w:4000, h:2000,
+    color:'#0a0a1a', danger:4, type:'end' }
+];
+
+// --- Деревня: дома и жители ---
+const VILLAGE_HOUSES = [];
+const VILLAGER_TYPES = [
+  { name:'Библиотекарь Аэнор', color:'#88cfff', role:'books' },
+  { name:'Кузнец Бром', color:'#ff9944', role:'smith' },
+  { name:'Алхимик Лира', color:'#a06aff', role:'alchemist' },
+  { name:'Картограф Фин', color:'#5b9a5b', role:'cartographer' },
+  { name:'Пекарь Дора', color:'#ffd700', role:'baker' },
+  { name:'Лучник Кэл', color:'#52be80', role:'archer' },
+  { name:'Рыбак Торн', color:'#4ab8ff', role:'fisher' },
+  { name:'Священник Оз', color:'#fff', role:'priest' }
+];
+
+// Генерация домов деревни
+for (let i = 0; i < 12; i++) {
+  const hx = 100 + (i % 6) * 380;
+  const hy = 150 + Math.floor(i / 6) * 900;
+  VILLAGE_HOUSES.push({
+    x: hx, y: hy, w: 90, h: 70,
+    villager: i < VILLAGER_TYPES.length ? VILLAGER_TYPES[i] : null,
+    doorX: hx + 45, doorY: hy + 70
+  });
+}
+
+// --- Точки интереса (POI) ---
+const POI = [
+  // Деревня — NPC
+  { zone:'village', x:145, y:220, type:'npc', name:'Целительница Мира', color:'#5b9a5b', role:'healer' },
+  { zone:'village', x:525, y:220, type:'npc', name:'Торговец Грейн', color:'#ffd700', role:'trader' },
+  { zone:'village', x:905, y:220, type:'npc', name:'Мудрец Элден', color:'#88cfff', role:'sage' },
+  { zone:'village', x:1285, y:220, type:'npc', name:'Библиотекарь Аэнор', color:'#88cfff', role:'books' },
+  { zone:'village', x:145, y:1120, type:'npc', name:'Кузнец Бром', color:'#ff9944', role:'smith' },
+  { zone:'village', x:525, y:1120, type:'npc', name:'Алхимик Лира', color:'#a06aff', role:'alchemist' },
+  { zone:'village', x:905, y:1120, type:'npc', name:'Картограф Фин', color:'#5b9a5b', role:'cartographer' },
+  { zone:'village', x:1285, y:1120, type:'npc', name:'Лучник Кэл', color:'#52be80', role:'archer' },
+  // Деревня — големы
+  { zone:'village', x:700, y:600, type:'golem', name:'Железный голем', color:'#c0c0c0' },
+  { zone:'village', x:1700, y:600, type:'golem', name:'Стальной страж', color:'#88ccff' },
+  { zone:'village', x:400, y:1500, type:'golem', name:'Железный голем', color:'#c0c0c0' },
+  // Деревня — порталы
+  { zone:'village', x:2200, y:100, type:'portal_end', name:'Портал в Эндер', color:'#a06aff' },
+  { zone:'village', x:2200, y:1900, type:'portal_flowers', name:'Портал: Аллея цветов', color:'#ff6b81' },
+  { zone:'village', x:100, y:1900, type:'portal_mines', name:'Портал: Шахты', color:'#8b7355' },
+  { zone:'village', x:100, y:100, type:'portal_caves', name:'Портал: Пещеры', color:'#4ab8ff' },
+
+  // Лес
+  { zone:'forest', x:1200, y:1000, type:'boss_root', name:'Корень', color:'#3a6a2a' },
+  { zone:'forest', x:200, y:200, type:'signpost', name:'Указатель', color:'#8b7355' },
+
+  // Пещеры
+  { zone:'caves', x:1000, y:800, type:'crystal_node', name:'Зал кристаллов', color:'#4ab8ff' },
+  { zone:'caves', x:1500, y:1200, type:'boss_spider', name:'Кристальная королева', color:'#a06aff' },
+
+  // Аллея цветов
+  { zone:'flowers', x:800, y:600, type:'flower_field', name:'Цветочное поле', color:'#ff6b81' },
+
+  // Пустоши
+  { zone:'wastes', x:1000, y:800, type:'boss_wither', name:'Увядший', color:'#4a3a2a' },
+
+  // Шахты
+  { zone:'mines', x:600, y:400, type:'ore_coal', name:'Угольная жила', color:'#2a2a2a' },
+  { zone:'mines', x:1200, y:600, type:'ore_iron', name:'Железная жила', color:'#c8a070' },
+  { zone:'mines', x:800, y:1200, type:'ore_gold', name:'Золотая жила', color:'#ffd700' },
+  { zone:'mines', x:1600, y:1400, type:'ore_diamond', name:'Алмазная жила', color:'#4ab8ff' },
+  { zone:'mines', x:1800, y:400, type:'boss_mine', name:'Каменный голем', color:'#8b7355' },
+
+  // Дальние равнины
+  { zone:'far_plains', x:800, y:1200, type:'signpost', name:'Указатель', color:'#8b7355' },
+
+  // Пустыня
+  { zone:'desert', x:800, y:800, type:'boss_desert', name:'Песчаный фараон', color:'#ddaa44' },
+
+  // Эндер
+  { zone:'end', x:2000, y:1000, type:'boss_dragon', name:'Дракон Края', color:'#0a0a1a' },
+  { zone:'end', x:500, y:500, type:'end_crystal', name:'Кристалл Энда', color:'#ffd700' },
+  { zone:'end', x:3500, y:500, type:'end_crystal', name:'Кристалл Энда', color:'#ffd700' },
+  { zone:'end', x:500, y:1500, type:'end_crystal', name:'Кристалл Энда', color:'#ffd700' },
+  { zone:'end', x:3500, y:1500, type:'end_crystal', name:'Кристалл Энда', color:'#ffd700' },
+  { zone:'end', x:3800, y:1900, type:'portal_end_exit', name:'Выход из Эндера', color:'#a06aff' },
+  { zone:'end', x:200, y:1900, type:'ore_end_diamond', name:'Алмазы Эндера', color:'#4ab8ff' }
+];
+
+// --- Монстры ---
+const MONSTER_TYPES = {
+  zombie:       { hp:30, dmg:8, speed:1.2, radius:14, color:'#4a6a4a', xp:10, name:'Зомби' },
+  skeleton:     { hp:20, dmg:10, speed:1.8, radius:12, color:'#c0c0b0', xp:12, ranged:true, name:'Скелет' },
+  spider:       { hp:25, dmg:7, speed:2.2, radius:11, color:'#6a3a3a', xp:15, name:'Паук' },
+  sapling:      { hp:20, dmg:6, speed:1.5, radius:10, color:'#3a6a2a', xp:8, name:'Саженец' },
+  withered:     { hp:50, dmg:15, speed:1.0, radius:16, color:'#5a4a3a', xp:25, name:'Увядший' },
+  giant_zombie: { hp:80, dmg:20, speed:0.8, radius:22, color:'#3a5a3a', xp:40, name:'Зомби-гигант' },
+  enderman:     { hp:60, dmg:18, speed:2.5, radius:14, color:'#1a0a2a', xp:30, name:'Эндермен', teleport:true },
+  enderling:    { hp:35, dmg:12, speed:2.0, radius:10, color:'#3a1a4a', xp:20, name:'Эндерлинг' },
+  cave_spider:  { hp:30, dmg:10, speed:2.5, radius:9, color:'#4a2a2a', xp:18, name:'Пещерный паук', poison:true },
+  husk:         { hp:40, dmg:12, speed:1.0, radius:15, color:'#8a7a4a', xp:18, name:'Песчаный гул' },
+  mine_zombie:  { hp:45, dmg:14, speed:1.1, radius:15, color:'#3a4a3a', xp:20, name:'Шахтёр-зомби' }
+};
+
+function getMonsterForZone(zone) {
+  switch(zone.id) {
+    case 'plains': return Math.random()<0.5 ? 'zombie' : 'skeleton';
+    case 'far_plains': return Math.random()<0.4 ? 'zombie' : Math.random()<0.5 ? 'skeleton' : 'giant_zombie';
+    case 'forest': return Math.random()<0.4 ? 'sapling' : Math.random()<0.5 ? 'spider' : 'zombie';
+    case 'caves': return Math.random()<0.6 ? 'cave_spider' : 'skeleton';
+    case 'mines': return Math.random()<0.5 ? 'mine_zombie' : 'cave_spider';
+    case 'wastes': return Math.random()<0.4 ? 'withered' : Math.random()<0.5 ? 'giant_zombie' : 'skeleton';
+    case 'desert': return Math.random()<0.6 ? 'husk' : 'skeleton';
+    case 'end': return Math.random()<0.4 ? 'enderman' : 'enderling';
+    default: return null;
+  }
+}
+
+// --- Состояние ---
+let game = {
+  running:false, player:null, camera:{x:0,y:0,shake:0},
+  monsters:[], particles:[], projectiles:[], effects:[], pickups:[],
+  golems:[], boss:null, bossActive:false,
+  keys:{}, mouse:{x:0,y:0,down:false,rightDown:false},
+  time:0, selectedBuilder:null, kills:0,
+  inventory:{ crystals:0, flowers:0, moonstone:0, ancientSword:false,
+    coal:0, iron:0, gold:0, diamond:0, endDiamond:0, endCrystal:0 },
+  weather:'clear', weatherTimer:0, spawnTimer:0,
+  dialogueOpen:false, currentZone:null, showMap:false
+};
+
+// --- Сохранение ---
+function loadSave() {
+  const s = localStorage.getItem('rcb_world_save_v2');
+  if (s) {
+    const d = JSON.parse(s);
+    game.inventory = Object.assign(game.inventory, d.inventory || {});
+    game.kills = d.kills || 0;
+  }
+}
+function saveGame() {
+  localStorage.setItem('rcb_world_save_v2', JSON.stringify({
+    inventory:game.inventory, kills:game.kills
+  }));
+}
+
+// --- Создание игрока ---
+function createPlayer(bid) {
+  const b = BUILDERS.find(x=>x.id===bid);
+  return {
+    x:1200, y:1000, vx:0, vy:0, radius:18,
+    speed:b.spd||3.5, hp:b.hp, maxHp:b.hp,
+    energy:100, fatigue:0, combo:0, comboTimer:0,
+    isBlocking:false, facing:1, attackCD:0, invuln:0,
+    poison:0, stun:0, builder:b, attackAnim:0, blockAnim:0,
+    flashTimer:0, regenTimer:0
+  };
+}
+
+// --- Зона ---
+function getZoneAt(x,y) {
+  for (const z of ZONES) if (x>=z.x && x<z.x+z.w && y>=z.y && y<z.y+z.h) return z;
+  return ZONES[0];
+}
+
+// --- Големы деревни ---
+function initGolems() {
+  const vz = ZONES.find(z=>z.id==='village');
+  POI.filter(p=>p.type==='golem' && p.zone==='village').forEach(g=>{
+    game.golems.push({
+      x: g.x + vz.x, y: g.y + vz.y,
+      radius: 28, hp: 200, maxHp: 200, dmg: 25,
+      speed: 0.8, color: g.color, name: g.name,
+      patrolX: g.x + vz.x, patrolY: g.y + vz.y,
+      patrolRange: 200, target: null, attackTimer: 0
+    });
+  });
+}
+
+// --- Спавн монстров ---
+function spawnMonsters() {
+  game.spawnTimer++;
+  if (game.spawnTimer < 90) return;
+  game.spawnTimer = 0;
+  const z = game.currentZone;
+  if (!z || z.danger === 0) return;
+  const maxM = z.danger * 6;
+  if (game.monsters.length >= maxM) return;
+  const type = getMonsterForZone(z);
+  if (!type) return;
+  const t = MONSTER_TYPES[type];
+  const a = rand(0, Math.PI*2), d = rand(350, 700);
+  const mx = clamp(game.player.x + Math.cos(a)*d, z.x+50, z.x+z.w-50);
+  const my = clamp(game.player.y + Math.sin(a)*d, z.y+50, z.y+z.h-50);
+  game.monsters.push({
+    x:mx, y:my, vx:0, vy:0, radius:t.radius, hp:t.hp, maxHp:t.hp,
+    dmg:t.dmg, speed:t.speed, color:t.color, xp:t.xp, type, name:t.name,
+    ranged:t.ranged||false, teleport:t.teleport||false, poison:t.poison||false,
+    attackTimer:60, flashTimer:0, teleportTimer:0
+  });
+}
+
+// --- Спавн босса ---
+function spawnBoss(bossType, x, y) {
+  const bosses = {
+    root:      { name:'Корень', hp:400, dmg:15, speed:0.6, radius:45, color:'#3a6a2a', xp:200, bType:'root' },
+    spider:    { name:'Кристальная королева', hp:350, dmg:12, speed:1.0, radius:38, color:'#a06aff', xp:150, bType:'spider' },
+    wither:    { name:'Увядший', hp:500, dmg:20, speed:0.8, radius:40, color:'#4a3a2a', xp:300, bType:'wither' },
+    mine:      { name:'Каменный голем', hp:450, dmg:18, speed:0.5, radius:50, color:'#8b7355', xp:250, bType:'mine' },
+    desert:    { name:'Песчаный фараон', hp:550, dmg:22, speed:1.0, radius:42, color:'#ddaa44', xp:350, bType:'desert' },
+    dragon:    { name:'Дракон Края', hp:800, dmg:25, speed:1.2, radius:60, color:'#1a0a2a', xp:500, bType:'dragon' }
+  };
+  const b = bosses[bossType];
+  if (!b) return;
+  game.boss = {
+    x, y, vx:0, vy:0, radius:b.radius, hp:b.hp, maxHp:b.hp,
+    dmg:b.dmg, speed:b.speed, color:b.color, xp:b.xp,
+    name:b.name, type:b.bType, phase:1, attackTimer:120,
+    stunTimer:0, flashTimer:0, vineAnim:0, poisonAnim:0,
+    summonAnim:0, grabAnim:0, enraged:false, dragonFly:0
+  };
+  game.bossActive = true;
+  document.getElementById('bossBar').style.display = 'block';
+  document.getElementById('bossName').textContent = b.name;
+  showToast('⚠ Босс: ' + b.name + '!');
+}
+
+// --- Пикапы ---
+function spawnPickup(x,y,type) {
+  const colors = {
+    crystal:'#4ab8ff', flower:'#ff6b81', moonstone:'#ddeeff',
+    health:'#52be80', energy:'#4ab8ff',
+    coal:'#2a2a2a', iron:'#c8a070', gold:'#ffd700',
+    diamond:'#4ee8ff', endDiamond:'#cc66ff', endCrystal:'#ffd700'
+  };
+  game.pickups.push({ x, y, type, color:colors[type]||'#fff', radius:10, bob:rand(0,Math.PI*2), life:600 });
+}
+
+// --- Toast ---
+function showToast(text) {
+  const t = document.getElementById('toast');
+  t.textContent = text;
+  t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(()=>t.classList.remove('show'), 2500);
+}
+
+// --- Всплывающий текст ---
+function floatText(x,y,text,color) {
+  game.effects.push({type:'text',text,x,y,color,size:14,life:40,maxLife:40});
+}
+
+// --- Частицы ---
+function emitParticles(x,y,n,color,life) {
+  for (let i=0; i<n; i++)
+    game.particles.push({x,y,vx:rand(-3,3),vy:rand(-3,3),life:life||30,maxLife:life||30,color,size:rand(2,5),gravity:0});
+}
+
+// --- Урон игроку ---
+function damagePlayer(dmg) {
+  const p = game.player;
+  if (p.invuln > 0) return;
+  if (p.builder.id==='aer' && Math.random()<0.25) {
+    floatText(p.x, p.y-30, 'Уклон!', '#88cfff'); return;
+  }
+  let actual = dmg;
+  if (p.isBlocking) actual = Math.floor(actual*0.2);
+  if (p.builder.id==='terra' && !p.isBlocking) actual = Math.floor(actual*0.75);
+  actual = Math.max(1, Math.floor(actual));
+  p.hp = clamp(p.hp - actual, 0, p.maxHp);
+  p.flashTimer = 12; p.invuln = 25;
+  game.camera.shake = 5;
+  floatText(p.x, p.y-30, '-'+actual, '#ff4757');
+  emitParticles(p.x, p.y, 6, '#ff4757', 20);
+  if (p.hp <= 0) gameOver();
+}
+
+// --- Урон монстру ---
+function damageMonster(idx, dmg) {
+  const m = game.monsters[idx];
+  m.hp -= dmg; m.flashTimer = 8;
+  floatText(m.x, m.y-20, '-'+Math.floor(dmg), '#fff');
+  if (m.hp <= 0) {
+    emitParticles(m.x, m.y, 12, m.color, 25);
+    game.monsters.splice(idx, 1);
+    game.kills++;
+    if (Math.random() < 0.25) spawnPickup(m.x, m.y, 'health');
+    if (Math.random() < 0.12) spawnPickup(m.x, m.y, 'energy');
+    if (m.type === 'enderman' && Math.random() < 0.5) spawnPickup(m.x, m.y, 'endCrystal');
+    if (m.type === 'mine_zombie' && Math.random() < 0.3) spawnPickup(m.x, m.y, 'coal');
+  }
+}
+
+// --- Урон боссу ---
+function damageBoss(dmg) {
+  const b = game.boss;
+  if (!b) return;
+  b.hp = clamp(b.hp - dmg, 0, b.maxHp);
+  b.flashTimer = 10; game.camera.shake = 3;
+  floatText(b.x+rand(-20,20), b.y-40, '-'+Math.floor(dmg), '#fff');
+  document.getElementById('bossHpBar').style.width = (b.hp/b.maxHp*100)+'%';
+  const pct = b.hp / b.maxHp;
+  if (pct <= 0.66 && b.phase < 2) {
+    b.phase = 2; b.enraged = true;
+    if (b.type==='root' || b.type==='mine') for(let i=0;i<2;i++) spawnSaplingNear(b);
+    showToast('Фаза 2!');
+  }
+  if (pct <= 0.33 && b.phase < 3) {
+    b.phase = 3;
+    if (b.type==='root'||b.type==='mine'||b.type==='dragon') for(let i=0;i<3;i++) spawnSaplingNear(b);
+    if (b.type==='dragon') b.dragonFly = 1;
+    showToast('Фаза 3! Ярость!');
+  }
+  if (b.hp <= 0) bossDefeated();
+}
+
+function spawnSaplingNear(b) {
+  const types = {
+    root: { hp:20, dmg:5, speed:1.5, color:'#3a6a2a', name:'Саженец', type:'sapling', radius:12 },
+    mine: { hp:30, dmg:8, speed:1.0, color:'#8b7355', name:'Камень', type:'sapling', radius:14 },
+    dragon: { hp:35, dmg:10, speed:2.0, color:'#3a1a4a', name:'Эндерлинг', type:'enderling', radius:11 },
+    spider: { hp:15, dmg:6, speed:1.8, color:'#6a3a3a', name:'Паучок', type:'spider', radius:8 },
+    desert: { hp:25, dmg:8, speed:1.5, color:'#8a7a4a', name:'Песчаник', type:'husk', radius:12 },
+    wither: { hp:30, dmg:10, speed:1.2, color:'#5a4a3a', name:'Увядший саженец', type:'sapling', radius:13 }
+  };
+  const t = types[b.type] || types.root;
+  game.monsters.push({
+    x: b.x+rand(-60,60), y: b.y+rand(-60,60), vx:0, vy:0,
+    radius:t.radius, hp:t.hp, maxHp:t.hp, dmg:t.dmg, speed:t.speed,
+    color:t.color, xp:10, type:t.type, name:t.name,
+    attackTimer:60, flashTimer:0
+  });
+}
+
+function bossDefeated() {
+  const b = game.boss;
+  emitParticles(b.x, b.y, 50, b.color, 50);
+  game.camera.shake = 15;
+  game.kills++;
+  showToast(b.name + ' повержен!');
+  switch(b.type) {
+    case 'root':
+      game.inventory.ancientSword = true;
+      game.inventory.crystals += 3;
+      floatText(b.x, b.y-60, 'Древний меч RCB!', '#ffd700');
+      break;
+    case 'spider':
+      game.inventory.crystals += 5;
+      floatText(b.x, b.y-60, '+5 RCB-кристаллов!', '#4ab8ff');
+      break;
+    case 'wither':
+      game.inventory.moonstone += 3;
+      floatText(b.x, b.y-60, '+3 Лунных камня!', '#ddeeff');
+      break;
+    case 'mine':
+      game.inventory.iron += 10;
+      game.inventory.coal += 5;
+      floatText(b.x, b.y-60, '+10 железа, +5 угля!', '#c8a070');
+      break;
+    case 'desert':
+      game.inventory.gold += 5;
+      game.inventory.diamond += 2;
+      floatText(b.x, b.y-60, '+5 золота, +2 алмаза!', '#ffd700');
+      break;
+    case 'dragon':
+      game.inventory.endDiamond += 5;
+      game.inventory.endCrystal += 4;
+      floatText(b.x, b.y-60, '+5 алмазов Энда, +4 кристалла!', '#cc66ff');
+      showToast('🏆 Дракон Края повержен! Ты — герой RCB!');
+      break;
+  }
+  game.boss = null;
+  game.bossActive = false;
+  document.getElementById('bossBar').style.display = 'none';
+  saveGame();
+}
+
+// --- Атака игрока ---
+function playerAttack() {
+  const p = game.player;
+  if (p.attackCD > 0 || p.stun > 0) return;
+  p.attackCD = 18; p.attackAnim = 12;
+  p.combo++; p.comboTimer = 80;
+  let dmg = rand(10, 18);
+  let crit = false, combo = false;
+  if (p.combo >= 3) { dmg *= 1.5; combo = true; p.combo = 0; }
+  let critChance = 0.15;
+  if (p.builder.id === 'lux') critChance += 0.20;
+  if (Math.random() < critChance) { dmg *= 3; crit = true; }
+  if (p.builder.id === 'ignis') dmg *= 1.3;
+  if (p.builder.id === 'umbra' && game.boss && game.boss.stunTimer > 0) dmg *= 1.5;
+  // Древний меч — бонус против боссов
+  if (game.inventory.ancientSword && game.boss) dmg *= 1.5;
+  if (p.fatigue >= 50) dmg *= 0.7;
+  if (p.fatigue >= 80) dmg *= 0.5;
+  p.fatigue = clamp(p.fatigue + 12, 0, 100);
+  const angle = Math.atan2(game.mouse.y - p.y + game.camera.y, game.mouse.x - p.x + game.camera.x);
+  game.effects.push({type:'slash', x:p.x+Math.cos(angle)*25, y:p.y+Math.sin(angle)*25, radius:28, angle, color:crit?'#ffd700':'#fff', life:10, maxLife:10});
+  let hit = false;
+  for (let i = game.monsters.length-1; i>=0; i--) {
+    if (dist(p, game.monsters[i]) < p.radius + game.monsters[i].radius + 20) {
+      damageMonster(i, dmg); hit = true;
+      if (crit) floatText(game.monsters[i].x, game.monsters[i].y-35, 'КРИТ!', '#ffd700');
+    }
+  }
+  if (game.boss && dist(p, game.boss) < p.radius + game.boss.radius + 20) {
+    damageBoss(dmg); hit = true;
+    if (crit) floatText(game.boss.x, game.boss.y-50, 'КРИТ!', '#ffd700');
+    if (combo) floatText(game.boss.x, game.boss.y-65, 'КОМБО!', '#ff6b81');
+    if (p.builder.id === 'lux' && Math.random() < 0.3 && game.boss) {
+      game.boss.stunTimer = 60;
+      floatText(game.boss.x, game.boss.y-55, 'Ослеплён!', '#ffd700');
+    }
+  }
+  if (hit) emitParticles(p.x+Math.cos(angle)*25, p.y+Math.sin(angle)*25, 4, p.builder.color, 15);
+}
+
+// --- Спецприём ---
+function playerSpecial() {
+  const p = game.player;
+  if (p.energy < 50 || p.stun > 0) { showToast('Недостаточно энергии!'); return; }
+  p.energy -= 50;
+  switch(p.builder.id) {
+    case 'ignis':
+      game.effects.push({type:'explosion',x:p.x,y:p.y,radius:150,color:'#ff5a4a',life:30,maxLife:30});
+      emitParticles(p.x, p.y, 40, '#ff5a4a', 40);
+      for(let i=game.monsters.length-1;i>=0;i--) if(dist(p,game.monsters[i])<150) damageMonster(i, rand(30,50));
+      if(game.boss && dist(p,game.boss)<150) { damageBoss(rand(40,55)); game.boss.stunTimer=60; }
+      game.camera.shake=15; showToast('Вулканический взрыв!'); break;
+    case 'aqua':
+      for(let i=0;i<20;i++) emitParticles(p.x+rand(-100,100), p.y, 5, '#4ab8ff', 30);
+      for(let i=game.monsters.length-1;i>=0;i--) if(dist(p,game.monsters[i])<200) damageMonster(i, rand(20,35));
+      if(game.boss && dist(p,game.boss)<200) damageBoss(rand(30,45));
+      p.poison=0; showToast('Цунами!'); break;
+    case 'terra':
+      game.camera.shake=20;
+      if(game.boss) game.boss.stunTimer=90;
+      for(let i=game.monsters.length-1;i>=0;i--) if(dist(p,game.monsters[i])<200) damageMonster(i, rand(15,30));
+      if(game.boss) damageBoss(rand(35,50));
+      p.fatigue=0; showToast('Землетрясение!'); break;
+    case 'aer':
+      for(let i=0;i<30;i++){const a=(i/30)*Math.PI*2; emitParticles(p.x+Math.cos(a)*40, p.y+Math.sin(a)*40, 2, '#88cfff', 30);}
+      for(let i=game.monsters.length-1;i>=0;i--) if(dist(p,game.monsters[i])<120) damageMonster(i, rand(20,40));
+      if(game.boss && dist(p,game.boss)<120) damageBoss(rand(30,50));
+      p.hp=clamp(p.hp+10,0,p.maxHp); showToast('Смерч!'); break;
+    case 'lux':
+      game.effects.push({type:'explosion',x:p.x,y:p.y,radius:120,color:'#ffd700',life:40,maxLife:40});
+      for(let i=game.monsters.length-1;i>=0;i--) if(dist(p,game.monsters[i])<130) damageMonster(i, rand(30,50));
+      if(game.boss && dist(p,game.boss)<130) { damageBoss(rand(45,60)); game.boss.stunTimer=90; }
+      showToast('Свет колонны!'); break;
+    case 'umbra':
+      let sdmg = rand(50,65);
+      if(game.boss && game.boss.stunTimer>0) { sdmg *= 1.5; showToast('Теневой клинок x1.5!'); }
+      else showToast('Теневой клинок!');
+      emitParticles(p.x, p.y, 20, '#6a4a7a', 35);
+      if(game.boss && dist(p,game.boss)<150) damageBoss(sdmg);
+      for(let i=game.monsters.length-1;i>=0;i--) if(dist(p,game.monsters[i])<100) damageMonster(i, rand(40,60));
+      break;
+    case 'vita':
+      p.hp=clamp(p.hp+30,0,p.maxHp);
+      emitParticles(p.x, p.y, 25, '#5b9a5b', 40);
+      for(let i=game.monsters.length-1;i>=0;i--) if(dist(p,game.monsters[i])<100) damageMonster(i, rand(15,25));
+      if(game.boss && dist(p,game.boss)<100) damageBoss(rand(20,30));
+      showToast('Цветение! +30 HP'); break;
+  }
+}
+
+// --- Выстрел ---
+function playerShoot() {
+  const p = game.player;
+  if (p.energy < 20) return;
+  p.energy -= 20;
+  const a = Math.atan2(game.mouse.y - p.y + game.camera.y, game.mouse.x - p.x + game.camera.x);
+  game.projectiles.push({x:p.x, y:p.y, vx:Math.cos(a)*9, vy:Math.sin(a)*9, owner:'player', dmg:rand(12,20), color:p.builder.color, radius:6, life:100});
+}
+
+// --- ИИ монстра ---
+function monsterAI(m) {
+  if (m.flashTimer > 0) m.flashTimer--;
+  const p = game.player;
+  const d = dist(m, p);
+  if (m.teleport && m.teleportTimer <= 0 && d > 200 && d < 500) {
+    m.x = p.x + rand(-80, 80); m.y = p.y + rand(-80, 80);
+    m.teleportTimer = 120;
+    emitParticles(m.x, m.y, 10, '#1a0a2a', 20);
+  }
+  if (m.teleportTimer > 0) m.teleportTimer--;
+  if (m.ranged && d < 450) {
+    m.attackTimer--;
+    if (m.attackTimer <= 0) {
+      m.attackTimer = 90;
+      const a = Math.atan2(p.y-m.y, p.x-m.x);
+      game.projectiles.push({x:m.x, y:m.y, vx:Math.cos(a)*5, vy:Math.sin(a)*5, owner:'monster', dmg:m.dmg, color:'#c0c0b0', radius:5, life:80});
+    }
+    if (d < 200) { m.x -= (p.x-m.x)/d * m.speed; m.y -= (p.y-m.y)/d * m.speed; }
+  } else {
+    if (d > m.radius + p.radius) {
+      m.x += (p.x-m.x)/d * m.speed;
+      m.y += (p.y-m.y)/d * m.speed;
+    } else {
+      m.attackTimer--;
+      if (m.attackTimer <= 0) {
+        m.attackTimer = 60;
+        damagePlayer(m.dmg);
+        if (m.poison && game.player.builder.id !== 'aqua') {
+          game.player.poison = 5;
+          showToast('Отравлен!');
+        }
+        emitParticles(p.x, p.y, 4, m.color, 15);
+      }
+    }
+  }
+}
+
+// --- ИИ голема ---
+function golemAI(g) {
+  // Патруль
+  if (!g.target) {
+    const dx = g.patrolX - g.x, dy = g.patrolY - g.y;
+    const d = Math.hypot(dx, dy);
+    if (d > g.patrolRange) {
+      g.x += (dx/d) * g.speed; g.y += (dy/d) * g.speed;
+    } else {
+      g.x += rand(-0.5, 0.5); g.y += rand(-0.5, 0.5);
+    }
+  }
+  // Поиск ближайшего монстра
+  let nearest = null, nd = 300;
+  for (const m of game.monsters) {
+    const d = dist(g, m);
+    if (d < nd) { nd = d; nearest = m; }
+  }
+  if (nearest) {
+    g.target = nearest;
+    const dx = nearest.x - g.x, dy = nearest.y - g.y;
+    const d = Math.hypot(dx, dy);
+    if (d > g.radius + nearest.radius) {
+      g.x += (dx/d) * g.speed;
+      g.y += (dy/d) * g.speed;
+    } else {
+      g.attackTimer--;
+      if (g.attackTimer <= 0) {
+        g.attackTimer = 40;
+        nearest.hp -= g.dmg;
+        nearest.flashTimer = 8;
+        floatText(nearest.x, nearest.y-20, '-'+g.dmg, '#fff');
+        emitParticles(nearest.x, nearest.y, 6, '#fff', 15);
+        if (nearest.hp <= 0) {
+          emitParticles(nearest.x, nearest.y, 10, nearest.color, 20);
+          game.monsters.splice(game.monsters.indexOf(nearest), 1);
+          game.kills++;
+          g.target = null;
+        }
+      }
+    }
+  } else {
+    g.target = null;
+  }
+}
+
+// --- ИИ босса ---
+function bossAI() {
+  const b = game.boss;
+  if (!b) return;
+  if (b.flashTimer > 0) b.flashTimer--;
+  if (b.stunTimer > 0) { b.stunTimer--; return; }
+  const p = game.player;
+  const d = dist(b, p);
+  const spd = b.phase === 3 ? 1.2 : b.phase === 2 ? 0.8 : b.speed;
+
+  // Дракон — летает
+  if (b.type === 'dragon') {
+    b.dragonFly += 0.02;
+    b.x += Math.cos(b.dragonFly) * spd * 2;
+    b.y += Math.sin(b.dragonFly * 1.3) * spd;
+    b.attackTimer--;
+    if (b.attackTimer <= 0) {
+      b.attackTimer = b.phase === 3 ? 40 : b.phase === 2 ? 60 : 80;
+      const r = Math.random();
+      if (r < 0.3) {
+        // Дыхание
+        for (let i = 0; i < 5; i++) {
+          const a = Math.atan2(p.y-b.y, p.x-b.x) + rand(-0.5, 0.5);
+          game.projectiles.push({x:b.x, y:b.y, vx:Math.cos(a)*6, vy:Math.sin(a)*6, owner:'boss', dmg:rand(15,25), color:'#a06aff', radius:8, life:100});
+        }
+        showToast('Дыхание дракона!');
+      } else if (r < 0.6) {
+        // Залп кристаллов (фаза 3)
+        if (b.phase === 3) {
+          for (let i = 0; i < 8; i++) {
+            const a = (i/8) * Math.PI * 2;
+            game.projectiles.push({x:b.x, y:b.y, vx:Math.cos(a)*5, vy:Math.sin(a)*5, owner:'boss', dmg:rand(10,18), color:'#ffd700', radius:6, life:120});
+          }
+          showToast('Залп кристаллов!');
+        }
+      } else {
+        spawnSaplingNear(b);
+        showToast('Дракон призывает эндерлингов!');
+      }
+    }
+    return;
+  }
+
+  // Обычные боссы
+  if (d > 100) { b.x += (p.x-b.x)/d * spd; b.y += (p.y-b.y)/d * spd; }
+  b.attackTimer--;
+  if (b.attackTimer <= 0) {
+    b.attackTimer = b.phase === 3 ? 50 : b.phase === 2 ? 70 : 90;
+    const r = Math.random();
+    if (r < 0.3) {
+      b.vineAnim = 20;
+      if (d < 250) { damagePlayer(rand(8,16)); emitParticles(p.x, p.y, 6, '#3a5a2a', 20); }
+    } else if (r < 0.55) {
+      b.poisonAnim = 40;
+      emitParticles(b.x, b.y, 15, '#64c832', 40);
+      if (d < 200) { damagePlayer(rand(5,10)); if (p.builder.id !== 'aqua') { p.poison = 5; showToast('Отравлен!'); } }
+    } else if (r < 0.8) {
+      b.summonAnim = 30;
+      for (let i = 0; i < (b.phase >= 2 ? 2 : 1); i++) spawnSaplingNear(b);
+      showToast('Призыв!');
+    } else {
+      b.grabAnim = 25;
+      if (d < 200) { damagePlayer(rand(6,12)); p.stun = 60; showToast('Хватка!'); game.camera.shake = 10; }
+    }
+  }
+  if (b.phase === 3 && Math.random() < 0.01) {
+    const a = Math.atan2(p.y-b.y, p.x-b.x);
+    game.projectiles.push({x:b.x, y:b.y, vx:Math.cos(a)*6, vy:Math.sin(a)*6, owner:'boss', dmg:rand(8,14), color:'#ff4757', radius:7, life:100});
+  }
+}
+
+// --- Взаимодействие ---
+function interact() {
+  const p = game.player;
+  for (const poi of POI) {
+    if (poi.zone !== game.currentZone.id) continue;
+    const wx = poi.x + game.currentZone.x;
+    const wy = poi.y + game.currentZone.y;
+    if (dist(p, {x:wx, y:wy}) < 55) {
+      handleInteraction(poi, wx, wy);
+      return;
+    }
+  }
+}
+
+function handleInteraction(poi, wx, wy) {
+  switch(poi.type) {
+    case 'npc':
+      handleNPC(poi);
+      break;
+    case 'portal_end':
+      game.player.x = 200; game.player.y = 4200;
+      showToast('Портал в Эндер!');
+      break;
+    case 'portal_end_exit':
+      game.player.x = 2300; game.player.y = 100;
+      showToast('Выход из Эндера в деревню');
+      break;
+    case 'portal_flowers':
+      game.player.x = 2500; game.player.y = 1600;
+      showToast('Аллея цветов');
+      break;
+    case 'portal_mines':
+      game.player.x = 2100; game.player.y = 2800;
+      showToast('Шахты RCB');
+      break;
+    case 'portal_caves':
+      game.player.x = 100; game.player.y = 2000;
+      showToast('Кристальные пещеры');
+      break;
+    case 'boss_root':
+      if (!game.bossActive) spawnBoss('root', wx, wy);
+      break;
+    case 'boss_spider':
+      if (!game.bossActive) spawnBoss('spider', wx, wy);
+      break;
+    case 'boss_wither':
+      if (!game.bossActive) spawnBoss('wither', wx, wy);
+      break;
+    case 'boss_mine':
+      if (!game.bossActive) spawnBoss('mine', wx, wy);
+      break;
+    case 'boss_desert':
+      if (!game.bossActive) spawnBoss('desert', wx, wy);
+      break;
+    case 'boss_dragon':
+      if (!game.bossActive) spawnBoss('dragon', wx, wy);
+      break;
+    case 'crystal_node':
+      for (let i = 0; i < 3; i++) spawnPickup(wx+rand(-30,30), wy+rand(-30,30), 'crystal');
+      showToast('Кристаллы добыты!');
+      break;
+    case 'flower_field':
+      for (let i = 0; i < 5; i++) spawnPickup(wx+rand(-40,40), wy+rand(-40,40), 'flower');
+      showToast('Цветы собраны!');
+      break;
+    case 'ore_coal':
+      game.inventory.coal += 3; floatText(wx, wy-30, '+3 угля', '#2a2a2a'); saveGame(); updateInventoryUI();
+      showToast('Уголь добыт (+3)'); break;
+    case 'ore_iron':
+      game.inventory.iron += 3; floatText(wx, wy-30, '+3 железа', '#c8a070'); saveGame(); updateInventoryUI();
+      showToast('Железо добыто (+3)'); break;
+    case 'ore_gold':
+      game.inventory.gold += 2; floatText(wx, wy-30, '+2 золота', '#ffd700'); saveGame(); updateInventoryUI();
+      showToast('Золото добыто (+2)'); break;
+    case 'ore_diamond':
+      game.inventory.diamond += 1; floatText(wx, wy-30, '+1 алмаз!', '#4ee8ff'); saveGame(); updateInventoryUI();
+      showToast('Алмаз добыт! (+1)'); break;
+    case 'ore_end_diamond':
+      game.inventory.endDiamond += 2; floatText(wx, wy-30, '+2 алмаза Энда!', '#cc66ff'); saveGame(); updateInventoryUI();
+      showToast('Алмазы Энда! (+2)'); break;
+    case 'end_crystal':
+      game.inventory.endCrystal += 1; floatText(wx, wy-30, '+1 кристалл Энда!', '#ffd700'); saveGame(); updateInventoryUI();
+      showToast('Кристалл Энда получен!'); break;
+    case 'signpost':
+      showDialogue('Указатель',
+        '← Деревня (запад)\n→ Тёмный лес (восток)\n↓ Кристальные пещеры / Шахты (юг)\n↘ Пустоши / Пустыня (юго-восток)\n🟪 Эндер — через портал в деревне',
+        ['Понятно']); break;
+  }
+}
+
+function handleNPC(poi) {
+  switch(poi.role) {
+    case 'healer':
+      if (game.inventory.flowers >= 3) {
+        game.inventory.flowers -= 3;
+        game.player.hp = game.player.maxHp;
+        saveGame(); updateInventoryUI();
+        showDialogue('Целительница Мира', 'Вот зелье из цветов. Полное восстановление!', ['Спасибо!']);
+      } else {
+        showDialogue('Целительница Мира', `Принеси 3 цветка с Аллеи.\nУ тебя: ${game.inventory.flowers} цветков.`, ['Ладно']);
+      } break;
+    case 'trader':
+      showDialogue('Торговец Грейн',
+        `Привет! Кристаллы: ${game.inventory.crystals}, Лунные камни: ${game.inventory.moonstone}\n5 кристаллов → полное восстановление энергии\n3 лунных камня → +20 макс. HP`,
+        ['Обмен 5 кристаллов', 'Обмен 3 лунных камня', 'Пока']); break;
+    case 'sage':
+      showDialogue('Мудрец Элден',
+        'Мир RCB огромен:\n\n• Тёмный лес — Корень\n• Пещеры — Кристальная королева\n• Шахты — Каменный голем\n• Пустоши — Увядший\n• Пустыня — Песчаный фараон\n• Эндер — Дракон Края (нужен портал)\n\nВ Эндере есть алмазы Энда и кристаллы.',
+        ['Понятно']); break;
+    case 'books':
+      showDialogue('Библиотекарь Аэнор',
+        `У тебя: ${game.inventory.endCrystal} кристаллов Энда.\n4 кристалла → зачарование оружия (постоянный +20% урон)`,
+        ['Зачаровать', 'Пока']); break;
+    case 'smith':
+      showDialogue('Кузнец Бром',
+        `Железо: ${game.inventory.iron}, Уголь: ${game.inventory.coal}\n10 железа + 5 угля → улучшение брони (+15% защита)`,
+        ['Улучшить броню', 'Пока']); break;
+    case 'alchemist':
+      showDialogue('Алхимик Лира',
+        `Цветы: ${game.inventory.flowers}, Кристаллы: ${game.inventory.crystals}\n2 цветка + 1 кристалл → зелье ярости (след. атака x2)`,
+        ['Создать зелье', 'Пока']); break;
+    case 'cartographer':
+      showDialogue('Картограф Фин',
+        'Карта мира:\n\nДеревня — центр, безопасно\nРавнины — зомби, скелеты\nТёмный лес — саженцы, пауки, Корень\nПещеры — пещерные пауки, королева\nШахты — шахтёры-зомби, голем, руда\nАллея цветов — мирная, цветы\nПустоши — увядшие, гиганты\nПустыня — гулы, фараон\nЭндер — эндермены, дракон',
+        ['Спасибо']); break;
+    case 'archer':
+      showDialogue('Лучник Кэл',
+        'Совет: стреляй издалека (клавиша E). Скелеты тоже стреляют — уклоняйся!\n\nПротив боссов используй блок (ПКМ) и спецприём (Пробел).',
+        ['Понятно']); break;
+    case 'baker':
+      showDialogue('Пекарь Дора', 'Привет! У меня есть свежий хлеб.\n\n2 цветка → +30 HP сразу', ['Съесть хлеб', 'Пока']); break;
+    case 'fisher':
+      showDialogue('Рыбак Торн', 'Я ловлю рыбу в озере у деревни.\n\nЕсли найдёшь лунный камень — покажи кузнецу, он сделает тебе отличную экипировку.', ['Понятно']); break;
+    case 'priest':
+      showDialogue('Священник Оз',
+        'Первые Строители создали этот мир. Их наследие живёт в тебе.\n\nСемь Строителей: Игнис, Аква, Терра, Аэр, Люкс, Умбра, Вита.\nКаждый оставил силу, которую ты можешь принять.',
+        ['Благодарю']); break;
+  }
+}
+
+function showDialogue(title, text, choices) {
+  game.dialogueOpen = true;
+  document.getElementById('dlgTitle').textContent = title;
+  document.getElementById('dlgText').innerHTML = text.replace(/\n/g, '<br>');
+  const ch = document.getElementById('dlgChoices');
+  ch.innerHTML = '';
+  choices.forEach(c => {
+    const btn = document.createElement('button');
+    btn.className = 'choice-btn';
+    btn.textContent = c;
+    btn.onclick = () => {
+      // Обработка обменов
+      if (title === 'Торговец Грейн' && c === 'Обмен 5 кристаллов') {
+        if (game.inventory.crystals >= 5) {
+          game.inventory.crystals -= 5;
+          game.player.energy = 100;
+          saveGame(); updateInventoryUI();
+          showToast('Энергия восстановлена!');
+        } else showToast('Недостаточно кристаллов!');
+      }
+      if (title === 'Торговец Грейн' && c === 'Обмен 3 лунных камня') {
+        if (game.inventory.moonstone >= 3) {
+          game.inventory.moonstone -= 3;
+          game.player.maxHp += 20;
+          game.player.hp += 20;
+          saveGame(); updateInventoryUI();
+          showToast('+20 макс. HP!');
+        } else showToast('Недостаточно лунных камней!');
+      }
+      if (title === 'Библиотекарь Аэнор' && c === 'Зачаровать') {
+        if (game.inventory.endCrystal >= 4) {
+          game.inventory.endCrystal -= 4;
+          game.inventory.ancientSword = true; // упрощение: зачарование даёт бонус
+          saveGame(); updateInventoryUI();
+          showToast('Оружие зачаровано! +20% урон.');
+        } else showToast('Нужно 4 кристалла Энда!');
+      }
+      if (title === 'Кузнец Бром' && c === 'Улучшить броню') {
+        if (game.inventory.iron >= 10 && game.inventory.coal >= 5) {
+          game.inventory.iron -= 10; game.inventory.coal -= 5;
+          game.player.maxHp += 15; game.player.hp += 15;
+          saveGame(); updateInventoryUI();
+          showToast('Броня улучшена! +15% защита, +15 HP');
+        } else showToast('Нужно 10 железа и 5 угля!');
+      }
+      if (title === 'Алхимик Лира' && c === 'Создать зелье') {
+        if (game.inventory.flowers >= 2 && game.inventory.crystals >= 1) {
+          game.inventory.flowers -= 2; game.inventory.crystals -= 1;
+          game.player.rageBuff = 1; // флаг — след. атака x2
+          saveGame(); updateInventoryUI();
+          showToast('Зелье ярости! След. атака x2!');
+        } else showToast('Нужно 2 цветка и 1 кристалл!');
+      }
+      if (title === 'Пекарь Дора' && c === 'Съесть хлеб') {
+        if (game.inventory.flowers >= 2) {
+          game.inventory.flowers -= 2;
+          game.player.hp = clamp(game.player.hp + 30, 0, game.player.maxHp);
+          saveGame(); updateInventoryUI();
+          showToast('+30 HP!');
+        } else showToast('Нужно 2 цветка!');
+      }
+      closeDialogue();
+    };
+    ch.appendChild(btn);
+  });
+  document.getElementById('dialogue').style.display = 'block';
+}
+
+function closeDialogue() {
+  game.dialogueOpen = false;
+  document.getElementById('dialogue').style.display = 'none';
+}
+
+// --- Пикап ---
+function pickUp(pk) {
+  const p = game.player;
+  switch(pk.type) {
+    case 'health': p.hp = clamp(p.hp+20, 0, p.maxHp); floatText(p.x, p.y-30, '+20 HP', '#52be80'); break;
+    case 'energy': p.energy = clamp(p.energy+30, 0, 100); floatText(p.x, p.y-30, '+30 Energy', '#4ab8ff'); break;
+    case 'crystal': game.inventory.crystals++; floatText(p.x, p.y-30, '+1 Кристалл', '#4ab8ff'); break;
+    case 'flower': game.inventory.flowers++; floatText(p.x, p.y-30, '+1 Цветок', '#ff6b81'); break;
+    case 'moonstone': game.inventory.moonstone++; floatText(p.x, p.y-30, '+1 Лунный камень', '#ddeeff'); break;
+    case 'coal': game.inventory.coal++; floatText(p.x, p.y-30, '+1 Уголь', '#2a2a2a'); break;
+    case 'iron': game.inventory.iron++; floatText(p.x, p.y-30, '+1 Железо', '#c8a070'); break;
+    case 'gold': game.inventory.gold++; floatText(p.x, p.y-30, '+1 Золото', '#ffd700'); break;
+    case 'diamond': game.inventory.diamond++; floatText(p.x, p.y-30, '+1 Алмаз!', '#4ee8ff'); break;
+    case 'endDiamond': game.inventory.endDiamond++; floatText(p.x, p.y-30, '+1 Алмаз Энда!', '#cc66ff'); break;
+    case 'endCrystal': game.inventory.endCrystal++; floatText(p.x, p.y-30, '+1 Кристалл Энда!', '#ffd700'); break;
+  }
+  saveGame(); updateInventoryUI();
+}
+
+// --- Обновление ---
+function update() {
+  game.time++;
+  const p = game.player;
+  game.currentZone = getZoneAt(p.x, p.y);
+  document.getElementById('hudZone').textContent = game.currentZone.name;
+
+  // Движение
+  if (p.stun > 0) p.stun--;
+  else if (!game.dialogueOpen) {
+    let mx=0, my=0;
+    if (game.keys['w']||game.keys['arrowup']) my-=1;
+    if (game.keys['s']||game.keys['arrowdown']) my+=1;
+    if (game.keys['a']||game.keys['arrowleft']) { mx-=1; p.facing=-1; }
+    if (game.keys['d']||game.keys['arrowright']) { mx+=1; p.facing=1; }
+    if (mx||my) { const l=Math.hypot(mx,my); p.vx=(mx/l)*p.speed; p.vy=(my/l)*p.speed; }
+    else { p.vx*=0.8; p.vy*=0.8; }
+    p.x = clamp(p.x+p.vx, 0, WORLD_W);
+    p.y = clamp(p.y+p.vy, 0, WORLD_H);
+  }
+
+  // Камера
+  game.camera.x += (p.x - W()/2 - game.camera.x) * 0.1;
+  game.camera.y += (p.y - H()/2 - game.camera.y) * 0.1;
+  if (game.camera.shake > 0.5) game.camera.shake *= 0.9;
+
+  // Восстановление
+  if (p.energy < 100) p.energy = clamp(p.energy+0.3, 0, 100);
+  if (p.fatigue > 0) p.fatigue = clamp(p.fatigue-0.15, 0, 100);
+  if (p.attackCD > 0) p.attackCD--;
+  if (p.invuln > 0) p.invuln--;
+  if (p.flashTimer > 0) p.flashTimer--;
+  if (p.comboTimer > 0) { p.comboTimer--; if (p.comboTimer <= 0) p.combo = 0; }
+  p.isBlocking = game.mouse.rightDown;
+
+  // Регенерация
+  if (p.builder.id === 'vita' && p.hp < p.maxHp) {
+    p.regenTimer++;
+    if (p.regenTimer >= 30) { p.hp = clamp(p.hp+2, 0, p.maxHp); p.regenTimer = 0; }
+  }
+  // Яд
+  if (p.poison > 0 && game.time % 60 === 0) {
+    let pd = p.builder.id === 'vita' || p.builder.id === 'aqua' ? 2 : 4;
+    p.hp = clamp(p.hp - pd, 0, p.maxHp);
+    p.poison--;
+    emitParticles(p.x, p.y, 3, '#64c832', 15);
+    if (p.hp <= 0) gameOver();
+  }
+  // Безопасная зона
+  if (game.currentZone.danger === 0 && p.hp < p.maxHp && game.time % 30 === 0) {
+    p.hp = clamp(p.hp+1, 0, p.maxHp);
+  }
+
+  // Спавн
+  spawnMonsters();
+  // ИИ
+  for (let i = game.monsters.length-1; i>=0; i--) {
+    monsterAI(game.monsters[i]);
+    if (dist(game.monsters[i], p) > 900) game.monsters.splice(i, 1);
+  }
+  game.golems.forEach(golemAI);
+  if (game.boss) bossAI();
+
+  // Снаряды
+  for (let i = game.projectiles.length-1; i>=0; i--) {
+    const pr = game.projectiles[i];
+    pr.x += pr.vx; pr.y += pr.vy; pr.life--;
+    if (pr.owner === 'player') {
+      for (let j = game.monsters.length-1; j>=0; j--) {
+        if (dist(pr, game.monsters[j]) < game.monsters[j].radius + pr.radius) {
+          damageMonster(j, pr.dmg);
+          emitParticles(pr.x, pr.y, 6, pr.color, 15);
+          game.projectiles.splice(i, 1); break;
+        }
+      }
+      if (game.boss && dist(pr, game.boss) < game.boss.radius + pr.radius) {
+        damageBoss(pr.dmg);
+        emitParticles(pr.x, pr.y, 6, pr.color, 15);
+        game.projectiles.splice(i, 1);
+      }
+    } else {
+      if (dist(pr, p) < p.radius + pr.radius) {
+        damagePlayer(pr.dmg);
+        emitParticles(pr.x, pr.y, 6, pr.color, 15);
+        game.projectiles.splice(i, 1);
+      }
+    }
+    if (pr.life <= 0) game.projectiles.splice(i, 1);
+  }
+  // Частицы
+  for (let i = game.particles.length-1; i>=0; i--) {
+    const pt = game.particles[i];
+    pt.x += pt.vx; pt.y += pt.vy; pt.vy += pt.gravity; pt.life--;
+    if (pt.life <= 0) game.particles.splice(i, 1);
+  }
+  // Эффекты
+  for (let i = game.effects.length-1; i>=0; i--) {
+    game.effects[i].life--;
+    if (game.effects[i].life <= 0) game.effects.splice(i, 1);
+  }
+  // Пикапы
+  for (let i = game.pickups.length-1; i>=0; i--) {
+    const pk = game.pickups[i];
+    pk.bob += 0.05; pk.life--;
+    if (dist(p, pk) < 30) { pickUp(pk); game.pickups.splice(i, 1); }
+    else if (pk.life <= 0) game.pickups.splice(i, 1);
+  }
+  // Погода
+  game.weatherTimer++;
+  if (game.weatherTimer > 800) {
+    game.weatherTimer = 0;
+    const ws = ['clear','fog','storm','meteor'];
+    game.weather = ws[Math.floor(Math.random()*ws.length)];
+    if (game.currentZone.danger > 0) {
+      const names = {clear:'Ясно',fog:'Туман',storm:'Гроза',meteor:'Метеориты'};
+      showToast('Погода: ' + names[game.weather]);
+    }
+  }
+  document.getElementById('hudWeather').textContent = {clear:'Ясно',fog:'Туман',storm:'Гроза',meteor:'Метеориты'}[game.weather];
+  // Метеориты
+  if (game.weather === 'meteor' && game.currentZone.danger > 0 && Math.random() < 0.02) {
+    game.particles.push({x: p.x+rand(-300,300), y: p.y-300, vx:rand(-2,2), vy:rand(10,14), life:40, maxLife:40, color:'#ff9933', size:5, gravity:0});
+  }
+}
+
+// ============================================================
+//  ОТРИСОВКА
+// ============================================================
+
+function drawZone(z) {
+  const sx = z.x - game.camera.x, sy = z.y - game.camera.y;
+  ctx.fillStyle = z.color;
+  ctx.fillRect(sx, sy, z.w, z.h);
+
+  if (z.type === 'village') {
+    // Дома
+    for (const h of VILLAGE_HOUSES) {
+      const hx = sx + h.x, hy = sy + h.y;
+      ctx.fillStyle = '#3a3a2a'; ctx.fillRect(hx, hy, h.w, h.h);
+      ctx.fillStyle = '#5a3a2a';
+      ctx.beginPath(); ctx.moveTo(hx-5, hy); ctx.lineTo(hx+h.w/2, hy-25); ctx.lineTo(hx+h.w+5, hy); ctx.fill();
+      ctx.fillStyle = '#ffd700'; ctx.fillRect(hx+h.w/2-10, hy+h.h-30, 20, 30);
+    }
+    // Дорога
+    ctx.fillStyle = '#4a4a3a'; ctx.fillRect(sx, sy+950, z.w, 50);
+    ctx.fillRect(sx+1150, sy, 50, z.h);
+    // Фонтан
+    ctx.fillStyle = '#4ab8ff'; ctx.globalAlpha = 0.5;
+    ctx.beginPath(); ctx.arc(sx+1175, sy+975, 25, 0, Math.PI*2); ctx.fill();
+    ctx.globalAlpha = 1;
+  } else if (z.type === 'forest') {
+    for (let i = 0; i < 60; i++) {
+      const tx = sx + (i*70+40) % z.w, ty = sy + (i*90+50) % z.h;
+      ctx.fillStyle = 'rgba(10,20,10,0.9)';
+      ctx.beginPath(); ctx.moveTo(tx-18, ty+30); ctx.lineTo(tx, ty-40); ctx.lineTo(tx+18, ty+30); ctx.fill();
+      ctx.fillStyle = '#2a1a0a'; ctx.fillRect(tx-3, ty+20, 6, 15);
+    }
+  } else if (z.type === 'cave') {
+    for (let i = 0; i < 40; i++) {
+      const cx = sx + (i*60+30) % z.w, cy = sy + (i*80+40) % z.h;
+      ctx.fillStyle = ['#4ab8ff','#a06aff','#ffd700'][i%3];
+      ctx.globalAlpha = 0.6;
+      ctx.beginPath(); ctx.moveTo(cx, cy-15); ctx.lineTo(cx+8, cy); ctx.lineTo(cx, cy+15); ctx.lineTo(cx-8, cy); ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+  } else if (z.type === 'garden') {
+    for (let i = 0; i < 60; i++) {
+      const fx = sx + (i*35+20) % z.w, fy = sy + (i*45+25) % z.h;
+      ctx.fillStyle = ['#ff6b81','#ffd700','#4ab8ff','#ff9f43','#a06aff'][i%5];
+      ctx.beginPath(); ctx.arc(fx, fy, 7, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(fx, fy, 2, 0, Math.PI*2); ctx.fill();
+    }
+  } else if (z.type === 'field') {
+    for (let i = 0; i < 40; i++) {
+      const gx = sx + (i*80+40) % z.w, gy = sy + (i*70+35) % z.h;
+      ctx.strokeStyle = 'rgba(80,120,50,0.4)'; ctx.lineWidth = 1;
+      for (let j = 0; j < 5; j++) { ctx.beginPath(); ctx.moveTo(gx+j*3, gy+5); ctx.lineTo(gx+j*3, gy-5); ctx.stroke(); }
+    }
+  } else if (z.type === 'waste') {
+    for (let i = 0; i < 25; i++) {
+      const wx = sx + (i*100+50) % z.w, wy = sy + (i*80+40) % z.h;
+      ctx.strokeStyle = 'rgba(20,10,5,0.6)'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(wx, wy); ctx.lineTo(wx+rand(20,40), wy+rand(-10,10)); ctx.lineTo(wx+rand(30,60), wy+rand(10,30)); ctx.stroke();
+    }
+  } else if (z.type === 'mine') {
+    // Туннели
+    ctx.fillStyle = '#0a0a0a';
+    for (let i = 0; i < 8; i++) {
+      ctx.fillRect(sx + i*250 + 50, sy + 100, 120, z.h - 200);
+    }
+    // Рудные блоки
+    for (let i = 0; i < 30; i++) {
+      const ox = sx + (i*80+40) % z.w, oy = sy + (i*70+30) % z.h;
+      const colors = ['#2a2a2a','#c8a070','#ffd700','#4ee8ff'];
+      ctx.fillStyle = colors[i%4]; ctx.globalAlpha = 0.5;
+      ctx.fillRect(ox, oy, 12, 12);
+      ctx.globalAlpha = 1;
+    }
+    // Подпорки
+    for (let i = 0; i < 15; i++) {
+      const px = sx + (i*150+50) % z.w, py = sy + (i*120+30) % z.h;
+      ctx.fillStyle = '#3a2a1a';
+      ctx.fillRect(px-2, py-20, 4, 40);
+      ctx.fillRect(px-15, py-22, 30, 4);
+    }
+  } else if (z.type === 'desert') {
+    for (let i = 0; i < 20; i++) {
+      const dx = sx + (i*100+50) % z.w, dy = sy + (i*90+40) % z.h;
+      ctx.fillStyle = 'rgba(200,170,100,0.3)';
+      ctx.beginPath(); ctx.arc(dx, dy, 20, 0, Math.PI*2); ctx.fill();
+    }
+    // Кости
+    for (let i = 0; i < 10; i++) {
+      const bx = sx + (i*200+100) % z.w, by = sy + (i*150+50) % z.h;
+      ctx.strokeStyle = 'rgba(200,200,180,0.4)'; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.moveTo(bx, by); ctx.lineTo(bx+15, by-5); ctx.lineTo(bx+25, by+3); ctx.stroke();
+    }
+  } else if (z.type === 'end') {
+    // Острова Энда
+    for (let i = 0; i < 15; i++) {
+      const ex = sx + (i*300+100) % z.w, ey = sy + (i*200+50) % z.h;
+      ctx.fillStyle = '#2a1a3a';
+      ctx.beginPath(); ctx.ellipse(ex, ey, 60, 25, 0, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#1a0a2a';
+      ctx.beginPath(); ctx.ellipse(ex, ey-5, 50, 20, 0, 0, Math.PI*2); ctx.fill();
+    }
+    // Кристаллы Энда (огромные)
+    for (const poi of POI) {
+      if (poi.zone !== 'end' || poi.type !== 'end_crystal') continue;
+      const cx = sx + poi.x, cy = sy + poi.y;
+      ctx.fillStyle = 'rgba(255,215,0,0.3)';
+      ctx.beginPath(); ctx.arc(cx, cy, 40, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#ffd700'; ctx.globalAlpha = 0.6;
+      ctx.beginPath(); ctx.arc(cx, cy, 20, 0, Math.PI*2); ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+    // Звёзды
+    for (let i = 0; i < 50; i++) {
+      const sx2 = sx + (i*80+40) % z.w, sy2 = sy + (i*120+20) % z.h;
+      ctx.fillStyle = 'rgba(255,255,255,0.4)';
+      ctx.fillRect(sx2, sy2, 1, 1);
+    }
+  }
+
+  // Границы
+  ctx.strokeStyle = 'rgba(255,255,255,0.05)'; ctx.lineWidth = 2;
+  ctx.strokeRect(sx, sy, z.w, z.h);
+  // Название
+  ctx.fillStyle = 'rgba(255,255,255,0.12)';
+  ctx.font = 'bold 28px sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText(z.name, sx + z.w/2, sy + 40);
+  ctx.textAlign = 'left';
+}
+
+function drawPOI(poi) {
+  if (poi.zone !== game.currentZone.id) return;
+  const x = poi.x + game.currentZone.x - game.camera.x;
+  const y = poi.y + game.currentZone.y - game.camera.y;
+  if (x < -100 || x > W()+100 || y < -100 || y > H()+100) return;
+  const wx = poi.x + game.currentZone.x, wy = poi.y + game.currentZone.y;
+
+  if (poi.type === 'npc') {
+    ctx.fillStyle = 'rgba(0,0,0,0.4)'; ctx.beginPath(); ctx.ellipse(x, y+20, 16, 5, 0, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = poi.color; ctx.beginPath(); ctx.arc(x, y, 16, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#fff'; ctx.font = '11px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText(poi.name, x, y-25);
+    if (dist(game.player, {x:wx,y:wy}) < 60) { ctx.fillStyle = '#ff6b81'; ctx.font = 'bold 14px sans-serif'; ctx.fillText('[F]', x, y-42); }
+  } else if (poi.type === 'golem') {
+    // Голем
+    ctx.fillStyle = 'rgba(0,0,0,0.4)'; ctx.beginPath(); ctx.ellipse(x, y+30, 24, 6, 0, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = poi.color;
+    ctx.fillRect(x-20, y-25, 40, 50);
+    ctx.fillStyle = '#fff'; ctx.font = '11px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText(poi.name, x, y-35);
+    // Глаза
+    ctx.fillStyle = '#ff4757'; ctx.beginPath(); ctx.arc(x-8, y-10, 3, 0, Math.PI*2); ctx.arc(x+8, y-10, 3, 0, Math.PI*2); ctx.fill();
+  } else if (poi.type.startsWith('portal_')) {
+    const grad = ctx.createRadialGradient(x, y, 5, x, y, 35);
+    grad.addColorStop(0, poi.color); grad.addColorStop(1, 'transparent');
+    ctx.fillStyle = grad;
+    ctx.beginPath(); ctx.arc(x, y, 35+Math.sin(game.time*0.05)*3, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#fff'; ctx.font = '11px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText(poi.name, x, y-42);
+    if (dist(game.player, {x:wx,y:wy}) < 55) { ctx.fillStyle = '#ff6b81'; ctx.font = 'bold 14px sans-serif'; ctx.fillText('[F]', x, y-56); }
+  } else if (poi.type.startsWith('boss_')) {
+    if (!game.bossActive || (game.boss && game.boss.type !== poi.type.replace('boss_',''))) {
+      ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.beginPath(); ctx.arc(x, y, 28, 0, Math.PI*2); ctx.fill();
+      ctx.strokeStyle = poi.color; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(x, y, 28+Math.sin(game.time*0.05)*3, 0, Math.PI*2); ctx.stroke();
+      ctx.fillStyle = poi.color; ctx.font = 'bold 12px sans-serif'; ctx.textAlign = 'center';
+      ctx.fillText('☠ ' + poi.name, x, y-35);
+      if (dist(game.player, {x:wx,y:wy}) < 55) { ctx.fillStyle = '#ff6b81'; ctx.fillText('[F] Сразиться!', x, y-50); }
+    }
+  } else if (poi.type.startsWith('ore_') || poi.type === 'crystal_node' || poi.type === 'flower_field' || poi.type === 'end_crystal') {
+    ctx.fillStyle = poi.color; ctx.globalAlpha = 0.6;
+    ctx.beginPath(); ctx.arc(x, y, 22, 0, Math.PI*2); ctx.fill();
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = '#fff'; ctx.font = '10px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText(poi.name, x, y-30);
+    if (dist(game.player, {x:wx,y:wy}) < 55) { ctx.fillStyle = '#ff6b81'; ctx.font = 'bold 14px sans-serif'; ctx.fillText('[F]', x, y-44); }
+  } else if (poi.type === 'signpost') {
+    ctx.fillStyle = '#8b7355'; ctx.fillRect(x-2, y-30, 4, 35);
+    ctx.fillStyle = '#5a4a3a'; ctx.fillRect(x-20, y-28, 40, 20);
+    ctx.fillStyle = '#fff'; ctx.font = '10px sans-serif'; ctx.textAlign = 'center'; ctx.fillText('?', x, y-15);
+    if (dist(game.player, {x:wx,y:wy}) < 55) { ctx.fillStyle = '#ff6b81'; ctx.font = 'bold 14px sans-serif'; ctx.fillText('[F]', x, y-42); }
+  }
+  ctx.textAlign = 'left';
+}
+
+function drawPlayer() {
+  const p = game.player;
+  const x = p.x - game.camera.x, y = p.y - game.camera.y;
+  ctx.save(); ctx.translate(x, y);
+  if (p.flashTimer > 0 && Math.floor(p.flashTimer/3)%2 === 0) ctx.globalAlpha = 0.5;
+  ctx.fillStyle = 'rgba(0,0,0,0.4)'; ctx.beginPath(); ctx.ellipse(0, p.radius+4, p.radius*0.8, 6, 0, 0, Math.PI*2); ctx.fill();
+  const ar = p.radius + 8 + Math.sin(game.time*0.05)*3;
+  const grad = ctx.createRadialGradient(0, 0, p.radius, 0, 0, ar);
+  grad.addColorStop(0, p.builder.color+'00'); grad.addColorStop(0.7, p.builder.color+'33'); grad.addColorStop(1, p.builder.color+'00');
+  ctx.fillStyle = grad; ctx.beginPath(); ctx.arc(0, 0, ar, 0, Math.PI*2); ctx.fill();
+  const bg = ctx.createRadialGradient(-5, -5, 2, 0, 0, p.radius);
+  bg.addColorStop(0, p.builder.color); bg.addColorStop(1, '#222');
+  ctx.fillStyle = bg; ctx.beginPath(); ctx.arc(0, 0, p.radius, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(-6*p.facing, -4, 4, 0, Math.PI*2); ctx.arc(6*p.facing, -4, 4, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(-6*p.facing+p.facing, -4, 2, 0, Math.PI*2); ctx.arc(6*p.facing+p.facing, -4, 2, 0, Math.PI*2); ctx.fill();
+  if (p.attackAnim > 0) {
+    const a = (1 - p.attackAnim/12) * Math.PI - Math.PI/2;
+    ctx.save(); ctx.rotate(a*p.facing); ctx.translate(p.radius+5, 0);
+    ctx.fillStyle = game.inventory.ancientSword ? '#ffd700' : '#ccc';
+    ctx.fillRect(0, -3, 30, 6);
+    ctx.beginPath(); ctx.moveTo(30, -3); ctx.lineTo(37, 0); ctx.lineTo(30, 3); ctx.fill();
+    if (p.builder.id === 'ignis') { ctx.fillStyle = '#ff5a4a'; ctx.beginPath(); ctx.moveTo(30, -5); ctx.lineTo(35+rand(-2,2), 0); ctx.lineTo(30, 5); ctx.fill(); }
+    ctx.restore(); p.attackAnim--;
+  }
+  if (p.isBlocking) {
+    ctx.fillStyle = 'rgba(100,180,255,0.2)'; ctx.strokeStyle = 'rgba(100,180,255,0.7)'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.arc(0, 0, p.radius+10, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+  }
+  drawBar(0, -p.radius-14, 40, 5, p.hp/p.maxHp, '#52be80', '#ff4757');
+  ctx.restore();
+}
+
+function drawMonster(m) {
+  const x = m.x - game.camera.x, y = m.y - game.camera.y;
+  ctx.save(); ctx.translate(x, y);
+  if (m.flashTimer > 0 && Math.floor(m.flashTimer/3)%2 === 0) ctx.globalAlpha = 0.5;
+  ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.beginPath(); ctx.ellipse(0, m.radius+2, m.radius*0.7, 4, 0, 0, Math.PI*2); ctx.fill();
+  const bg = ctx.createRadialGradient(-3, -3, 2, 0, 0, m.radius);
+  bg.addColorStop(0, m.color); bg.addColorStop(1, '#111');
+  ctx.fillStyle = bg; ctx.beginPath(); ctx.arc(0, 0, m.radius, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = m.type==='withered'?'#f00':m.type==='spider'||m.type==='cave_spider'?'#ff0':'#f60';
+  ctx.beginPath(); ctx.arc(-4, -2, 2.5, 0, Math.PI*2); ctx.arc(4, -2, 2.5, 0, Math.PI*2); ctx.fill();
+  if (m.type === 'enderman') { ctx.fillStyle = '#a06aff'; ctx.beginPath(); ctx.arc(-4, -2, 3, 0, Math.PI*2); ctx.arc(4, -2, 3, 0, Math.PI*2); ctx.fill(); }
+  drawBar(0, -m.radius-8, 24, 3, m.hp/m.maxHp, '#52be80', '#ff4757');
+  ctx.restore();
+}
+
+function drawGolem(g) {
+  const x = g.x - game.camera.x, y = g.y - game.camera.y;
+  if (x < -60 || x > W()+60 || y < -60 || y > H()+60) return;
+  ctx.save(); ctx.translate(x, y);
+  ctx.fillStyle = 'rgba(0,0,0,0.4)'; ctx.beginPath(); ctx.ellipse(0, g.radius+4, g.radius*0.8, 8, 0, 0, Math.PI*2); ctx.fill();
+  // Тело
+  ctx.fillStyle = g.color;
+  ctx.fillRect(-g.radius*0.8, -g.radius, g.radius*1.6, g.radius*2);
+  // Голова
+  ctx.fillStyle = g.color;
+  ctx.fillRect(-g.radius*0.5, -g.radius-20, g.radius, 20);
+  // Глаза
+  ctx.fillStyle = '#ff4757';
+  ctx.beginPath(); ctx.arc(-6, -g.radius-10, 3, 0, Math.PI*2); ctx.arc(6, -g.radius-10, 3, 0, Math.PI*2); ctx.fill();
+  // Руки
+  ctx.fillStyle = g.color;
+  ctx.fillRect(-g.radius-10, -g.radius+5, 10, g.radius*1.5);
+  ctx.fillRect(g.radius, -g.radius+5, 10, g.radius*1.5);
+  drawBar(0, -g.radius-30, 50, 4, g.hp/g.maxHp, '#52be80', '#ff4757');
+  ctx.restore();
+}
+
+function drawBoss() {
+  const b = game.boss;
+  if (!b) return;
+  const x = b.x - game.camera.x, y = b.y - game.camera.y;
+  ctx.save(); ctx.translate(x, y);
+  if (b.enraged) ctx.translate(rand(-2,2), rand(-2,2));
+  if (b.flashTimer > 0 && Math.floor(b.flashTimer/3)%2 === 0) ctx.globalAlpha = 0.4;
+  ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.beginPath(); ctx.ellipse(0, b.radius+6, b.radius*0.9, 10, 0, 0, Math.PI*2); ctx.fill();
+
+  if (b.type === 'dragon') {
+    // Дракон
+    ctx.fillStyle = b.color;
+    ctx.beginPath(); ctx.ellipse(0, 0, b.radius, b.radius*0.6, 0, 0, Math.PI*2); ctx.fill();
+    // Крылья
+    ctx.fillStyle = '#1a0a1a';
+    const wingFlap = Math.sin(game.time*0.1) * 20;
+    ctx.beginPath(); ctx.moveTo(-b.radius, 0); ctx.lineTo(-b.radius-40, -30+wingFlap); ctx.lineTo(-b.radius+10, 10); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(b.radius, 0); ctx.lineTo(b.radius+40, -30+wingFlap); ctx.lineTo(b.radius-10, 10); ctx.fill();
+    // Глаза
+    ctx.fillStyle = b.phase === 3 ? '#f00' : '#a06aff'; ctx.shadowColor = ctx.fillStyle; ctx.shadowBlur = 15;
+    ctx.beginPath(); ctx.arc(-15, -10, 8, 0, Math.PI*2); ctx.arc(15, -10, 8, 0, Math.PI*2); ctx.fill();
+    ctx.shadowBlur = 0;
+  } else {
+    // Корень/голем/etc
+    ctx.strokeStyle = '#3a2a1a'; ctx.lineWidth = 4;
+    for (let i = 0; i < 6; i++) {
+      const a = (i/6)*Math.PI*2;
+      ctx.beginPath(); ctx.moveTo(0, b.radius*0.8);
+      ctx.quadraticCurveTo(Math.cos(a)*b.radius*0.6, b.radius+5, Math.cos(a)*b.radius*1.3, b.radius+10); ctx.stroke();
+    }
+    const tg = ctx.createRadialGradient(-10, -10, 5, 0, 0, b.radius);
+    tg.addColorStop(0, b.color); tg.addColorStop(1, '#1a0a00');
+    ctx.fillStyle = tg; ctx.beginPath(); ctx.arc(0, 0, b.radius, 0, Math.PI*2); ctx.fill();
+    const ec = b.phase === 3 ? '#f00' : b.phase === 2 ? '#f60' : '#fa0';
+    ctx.fillStyle = ec; ctx.shadowColor = ec; ctx.shadowBlur = 15;
+    ctx.beginPath(); ctx.arc(-14, -5, 7, 0, Math.PI*2); ctx.arc(14, -5, 7, 0, Math.PI*2); ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.strokeStyle = '#1a0a00'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.arc(0, 15, 12, 0, Math.PI); ctx.stroke();
+  }
+  drawBar(0, -b.radius-16, 80, 6, b.hp/b.maxHp, '#52be80', '#ff4757');
+  ctx.fillStyle = '#ff6b81'; ctx.font = 'bold 10px sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText(b.name + ' — Фаза ' + b.phase, 0, -b.radius-22);
+  ctx.textAlign = 'left';
+  ctx.restore();
+}
+
+function drawParticles() {
+  for (const p of game.particles) {
+    const a = p.life/p.maxLife;
+    ctx.fillStyle = p.color; ctx.globalAlpha = a;
+    ctx.beginPath(); ctx.arc(p.x-game.camera.x, p.y-game.camera.y, p.size*a, 0, Math.PI*2); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+}
+
+function drawProjectiles() {
+  for (const pr of game.projectiles) {
+    ctx.shadowColor = pr.color; ctx.shadowBlur = 10;
+    ctx.fillStyle = pr.color;
+    ctx.beginPath(); ctx.arc(pr.x-game.camera.x, pr.y-game.camera.y, pr.radius, 0, Math.PI*2); ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.strokeStyle = pr.color+'44'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(pr.x-game.camera.x, pr.y-game.camera.y);
+    ctx.lineTo(pr.x-pr.vx*2-game.camera.x, pr.y-pr.vy*2-game.camera.y); ctx.stroke();
+  }
+}
+
+function drawEffects() {
+  for (const e of game.effects) {
+    ctx.save(); ctx.globalAlpha = e.life/e.maxLife;
+    if (e.type === 'slash') {
+      ctx.strokeStyle = e.color; ctx.lineWidth = 4;
+      ctx.beginPath(); ctx.arc(e.x-game.camera.x, e.y-game.camera.y, e.radius, e.angle-0.5, e.angle+0.5); ctx.stroke();
+    } else if (e.type === 'explosion') {
+      const r = (1-e.life/e.maxLife) * e.radius;
+      const g = ctx.createRadialGradient(e.x-game.camera.x, e.y-game.camera.y, 0, e.x-game.camera.x, e.y-game.camera.y, r);
+      g.addColorStop(0, '#fff'); g.addColorStop(0.5, e.color); g.addColorStop(1, 'transparent');
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(e.x-game.camera.x, e.y-game.camera.y, r, 0, Math.PI*2); ctx.fill();
+    } else if (e.type === 'text') {
+      ctx.fillStyle = e.color; ctx.font = 'bold '+e.size+'px sans-serif'; ctx.textAlign = 'center';
+      ctx.fillText(e.text, e.x-game.camera.x, e.y-game.camera.y-(e.maxLife-e.life)*1.5);
+      ctx.textAlign = 'left';
+    }
+    ctx.restore();
+  }
+}
+
+function drawPickups() {
+  for (const pk of game.pickups) {
+    const x = pk.x-game.camera.x, y = pk.y-game.camera.y+Math.sin(pk.bob)*4;
+    ctx.shadowColor = pk.color; ctx.shadowBlur = 8;
+    ctx.fillStyle = pk.color; ctx.beginPath(); ctx.arc(x, y, pk.radius, 0, Math.PI*2); ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = '#fff'; ctx.globalAlpha = 0.5;
+    ctx.beginPath(); ctx.arc(x-3, y-3, 3, 0, Math.PI*2); ctx.fill();
+    ctx.globalAlpha = 1;
+  }
+}
+
+function drawBar(x, y, w, h, pct, color, bg) {
+  ctx.fillStyle = bg||'#333'; ctx.fillRect(x-w/2, y, w, h);
+  ctx.fillStyle = color; ctx.fillRect(x-w/2, y, w*clamp(pct,0,1), h);
+}
+
+function drawWeather() {
+  if (game.weather === 'fog' && game.currentZone.danger > 0) {
+    ctx.fillStyle = 'rgba(100,120,150,0.06)';
+    for (let i = 0; i < 5; i++) {
+      const fx = (game.time*0.3 + i*200) % (W()+100) - 50;
+      ctx.beginPath(); ctx.arc(fx, H()*0.5+Math.sin(game.time*0.01+i)*30, 120, 0, Math.PI*2); ctx.fill();
+    }
+  }
+  if (game.weather === 'storm' && Math.random() < 0.003) {
+    ctx.strokeStyle = 'rgba(255,255,200,0.8)'; ctx.lineWidth = 2;
+    ctx.beginPath(); const lx = rand(0, W()); ctx.moveTo(lx, 0);
+    let cy = 0;
+    while (cy < H()*0.7) { cy += rand(20,40); ctx.lineTo(lx+rand(-30,30), cy); }
+    ctx.stroke(); game.camera.shake = 8;
+  }
+}
+
+function drawMinimap() {
+  mmx.clearRect(0, 0, 180, 140);
+  mmx.fillStyle = '#111'; mmx.fillRect(0, 0, 180, 140);
+  const s = Math.min(180/WORLD_W, 140/WORLD_H);
+  for (const z of ZONES) {
+    mmx.fillStyle = z.color;
+    mmx.fillRect(z.x*s, z.y*s, z.w*s, z.h*s);
+    mmx.strokeStyle = 'rgba(255,255,255,0.15)'; mmx.strokeRect(z.x*s, z.y*s, z.w*s, z.h*s);
+  }
+  for (const poi of POI) {
+    if (poi.zone !== game.currentZone.id && poi.type.indexOf('boss') === -1) continue;
+    const z = ZONES.find(z=>z.id===poi.zone);
+    if (!z) continue;
+    const px = (z.x+poi.x)*s, py = (z.y+poi.y)*s;
+    mmx.fillStyle = poi.color;
+    mmx.beginPath(); mmx.arc(px, py, poi.type.indexOf('boss')===0 ? 3 : 2, 0, Math.PI*2); mmx.fill();
+  }
+  mmx.fillStyle = '#fff';
+  mmx.beginPath(); mmx.arc(game.player.x*s, game.player.y*s, 3, 0, Math.PI*2); mmx.fill();
+  mmx.strokeStyle = game.player.builder.color; mmx.lineWidth = 2; mmx.stroke();
+  if (game.boss) {
+    mmx.fillStyle = '#ff4757';
+    mmx.beginPath(); mmx.arc(game.boss.x*s, game.boss.y*s, 4, 0, Math.PI*2); mmx.fill();
+  }
+  for (const g of game.golems) {
+    mmx.fillStyle = '#c0c0c0';
+    mmx.beginPath(); mmx.arc(g.x*s, g.y*s, 2, 0, Math.PI*2); mmx.fill();
+  }
+}
+
+// --- Рендер ---
+function render() {
+  ctx.clearRect(0, 0, W(), H());
+  ctx.save();
+  if (game.camera.shake > 0.5) ctx.translate(rand(-game.camera.shake, game.camera.shake), rand(-game.camera.shake, game.camera.shake));
+  for (const z of ZONES) {
+    if (z.x+z.w < game.camera.x || z.x > game.camera.x+W()) continue;
+    if (z.y+z.h < game.camera.y || z.y > game.camera.y+H()) continue;
+    drawZone(z);
+  }
+  for (const poi of POI) drawPOI(poi);
+  drawPickups();
+  drawParticles();
+  for (const g of game.golems) drawGolem(g);
+  for (const m of game.monsters) {
+    if (m.x < game.camera.x-50 || m.x > game.camera.x+W()+50) continue;
+    if (m.y < game.camera.y-50 || m.y > game.camera.y+H()+50) continue;
+    drawMonster(m);
+  }
+  drawBoss();
+  drawPlayer();
+  drawProjectiles();
+  drawEffects();
+  drawWeather();
+  const vg = ctx.createRadialGradient(W()/2, H()/2, W()*0.3, W()/2, H()/2, W()*0.7);
+  vg.addColorStop(0, 'transparent'); vg.addColorStop(1, 'rgba(0,0,0,0.3)');
+  ctx.fillStyle = vg; ctx.fillRect(0, 0, W(), H());
+  ctx.restore();
+  drawMinimap();
+}
+
+// --- HUD ---
+function updateHUD() {
+  const p = game.player;
+  document.getElementById('hudHP').textContent = Math.ceil(p.hp)+'/'+p.maxHp;
+  document.getElementById('hpBar').style.width = (p.hp/p.maxHp*100)+'%';
+  document.getElementById('hudEnergy').textContent = Math.floor(p.energy)+'%';
+  document.getElementById('energyBar').style.width = p.energy+'%';
+  document.getElementById('hudLegacy').textContent = p.builder.name;
+  document.getElementById('hudKills').textContent = game.kills;
+}
+
+function updateInventoryUI() {
+  const el = document.getElementById('invList');
+  document.getElementById('inventoryPanel').style.display = 'block';
+  const inv = game.inventory;
+  el.innerHTML = `
+    <div class="inv-item"><span>RCB-кристаллы</span><span class="inv-count">${inv.crystals}</span></div>
+    <div class="inv-item"><span>Цветы</span><span class="inv-count">${inv.flowers}</span></div>
+    <div class="inv-item"><span>Лунный камень</span><span class="inv-count">${inv.moonstone}</span></div>
+    <div class="inv-item"><span>Уголь</span><span class="inv-count">${inv.coal}</span></div>
+    <div class="inv-item"><span>Железо</span><span class="inv-count">${inv.iron}</span></div>
+    <div class="inv-item"><span>Золото</span><span class="inv-count">${inv.gold}</span></div>
+    <div class="inv-item"><span>Алмазы</span><span class="inv-count">${inv.diamond}</span></div>
+    <div class="inv-item"><span>Алмазы Энда</span><span class="inv-count">${inv.endDiamond}</span></div>
+    <div class="inv-item"><span>Кристаллы Энда</span><span class="inv-count">${inv.endCrystal}</span></div>
+    <div class="inv-item"><span>Древний меч</span><span class="inv-count">${inv.ancientSword?'✓':'—'}</span></div>
+  `;
+}
+
+// --- Game Over ---
+function gameOver() {
+  game.running = false;
+  document.getElementById('goTitle').textContent = 'Поражение';
+  document.getElementById('goText').textContent = 'Ты пал в мире RCB. Потомки Строителей не сдаются.';
+  document.getElementById('gameOverScreen').style.display = 'flex';
+}
+
+function respawn() {
+  document.getElementById('gameOverScreen').style.display = 'none';
+  const p = game.player;
+  p.hp = p.maxHp; p.energy = 100; p.poison = 0; p.stun = 0;
+  p.x = 1200; p.y = 1000;
+  game.monsters = []; game.boss = null; game.bossActive = false;
+  document.getElementById('bossBar').style.display = 'none';
+  game.running = true;
+  gameLoop();
+  showToast('Возрождение в деревне');
+}
+
+// --- Цикл ---
+function gameLoop() {
+  if (!game.running) return;
+  update(); render(); updateHUD();
+  requestAnimationFrame(gameLoop);
+}
+
+// --- Старт ---
+function startGame() {
+  if (!game.selectedBuilder) { showToast('Выбери Строителя!'); return; }
+  document.getElementById('selectScreen').style.display = 'none';
+  game.player = createPlayer(game.selectedBuilder);
+  loadSave();
+  initGolems();
+  updateInventoryUI();
+  game.running = true;
+  gameLoop();
+  showToast('Добро пожаловать в мега-мир RCB!');
+}
+
+// --- Выбор ---
+function renderBuilderTiles() {
+  const row = document.getElementById('buildersRow');
+  row.innerHTML = '';
+  BUILDERS.forEach(b => {
+    const tile = document.createElement('div');
+    tile.className = 'builder-tile';
+    tile.onclick = () => {
+      game.selectedBuilder = b.id;
+      document.querySelectorAll('.builder-tile').forEach(t => t.classList.remove('selected'));
+      tile.classList.add('selected');
+    };
+    tile.innerHTML = `<div style="font-size:1.8rem">${b.icon}</div><div class="bname">${b.name}</div><div class="bdomain">${b.domain}</div><div class="bbonus">${b.bonus}</div>`;
+    row.appendChild(tile);
+  });
+}
+
+// --- Ввод ---
+document.addEventListener('keydown', e => {
+  game.keys[e.key.toLowerCase()] = true;
+  if (e.key === ' ' && game.running) { e.preventDefault(); playerSpecial(); }
+  if (e.key.toLowerCase() === 'e' && game.running) playerShoot();
+  if (e.key.toLowerCase() === 'f' && game.running) interact();
+  if (e.key === 'Tab' && game.running) { e.preventDefault(); game.showMap = true; }
+});
+document.addEventListener('keyup', e => {
+  game.keys[e.key.toLowerCase()] = false;
+  if (e.key === 'Tab') game.showMap = false;
+});
+canvas.addEventListener('mousemove', e => { game.mouse.x = e.clientX; game.mouse.y = e.clientY; });
+canvas.addEventListener('mousedown', e => {
+  if (e.button === 0 && game.running && !game.dialogueOpen) playerAttack();
+  if (e.button === 2) game.mouse.rightDown = true;
+});
+canvas.addEventListener('mouseup', e => { if (e.button === 2) game.mouse.rightDown = false; });
+canvas.addEventListener('contextmenu', e => e.preventDefault());
+
+renderBuilderTiles();
+</script>
+</body>
+</html>

@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Мои проекты — Главная</title>
+  <style>
+    :root {
+      --bg-body: #0f1115;
+      --bg-card: #161b22;
+      --text-main: #e5e7eb;
+      --text-muted: #818c99;
+      --accent-blue: #4f8ef7;
+      --accent-red: #ff5252;
+      --border: #2a303d;
+    }
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: var(--bg-body);
+      color: var(--text-main);
+      margin: 0;
+      padding: 0;
+    }
+    header {
+      padding: 1.2rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border);
+    }
+    h1 { margin: 0; font-size: 1.5rem; }
+    .admin-link {
+      color: var(--accent-blue);
+      text-decoration: none;
+      font-weight: 600;
+    }
+    .search-box {
+      padding: 0.6rem 0.9rem;
+      border: 1px solid var(--border);
+      background: var(--bg-card);
+      color: var(--text-main);
+      border-radius: 8px;
+      width: 100%;
+      max-width: 500px;
+    }
+    .projects-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 1.8rem;
+      padding: 2rem;
+    }
+    .project-card {
+      background: var(--bg-card);
+      padding: 1.4rem;
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      border: 1px solid var(--border);
+    }
+    .project-card h3 {
+      margin: 0 0 0.5rem;
+      color: var(--text-main);
+    }
+    .project-card p {
+      margin: 0;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+    .date {
+      font-size: 0.85rem;
+      color: #5b6370;
+      margin-top: 0.7rem;
+    }
+    .tags span {
+      display: inline-block;
+      background: rgba(79, 142, 247, 0.1);
+      color: var(--accent-blue);
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      margin-right: 0.3rem;
+    }
+    footer {
+      text-align: center;
+      padding: 2rem;
+      color: var(--text-muted);
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Мои проекты</h1>
+    <a href="admin.html" class="admin-link">Админка</a>
+  </header>
+
+  <div style="padding: 1rem 2rem;">
+    <input type="text" id="search" class="search-box" placeholder="Поиск по названию, описанию, тегам...">
+  </div>
+
+  <main class="projects-grid" id="projects-list"></main>
+
+  <footer>&copy; 2026 Мои проекты</footer>
+
+  <script>
+    const projects = JSON.parse(localStorage.getItem('rcb_projects')) || [];
+
+    function renderProjects(filter = '') {
+      const list = document.getElementById('projects-list');
+      list.innerHTML = '';
+      const lower = filter.toLowerCase();
+
+      projects.forEach(p => {
+        const match =
+          p.title.toLowerCase().includes(lower) ||
+          p.description.toLowerCase().includes(lower) ||
+          (p.tags && p.tags.toLowerCase().includes(lower));
+
+        if (!match) return;
+
+        const card = document.createElement('article');
+        card.className = 'project-card';
+        const tagsHtml = (p.tags || '').split(',').map(t => t.trim()).filter(Boolean)
+          .map(t => `<span>${escapeHtml(t)}</span>`).join('');
+
+        card.innerHTML = `
+          <h3>${escapeHtml(p.title)}</h3>
+          <p>${escapeHtml(p.description)}</p>
+          ${tagsHtml ? `<div class="tags">${tagsHtml}</div>` : ''}
+          <div class="date">${p.date}</div>
+          ${p.link ? `<br><a href="${escapeHtml(p.link)}" target="_blank" style="color:var(--accent-blue)">Открыть проект</a>` : ''}
+        `;
+        list.appendChild(card);
+      });
+    }
+
+    document.getElementById('search').addEventListener('input', e => renderProjects(e.target.value));
+    renderProjects();
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return str
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+  </script>
+</body>
+</html>

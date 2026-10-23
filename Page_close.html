@@ -1,0 +1,158 @@
+
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <title>Страница отключена</title>
+  <style>
+    :root {
+      --bg: #121212;
+      --panel: #1a1a1a;
+      --text: #e0e0e0;
+      --accent: #ff9800;
+      --input-bg: #222;
+      --border: #333;
+      --danger: #ff5555;
+      --success: #4caf50;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      margin: 0;
+      padding: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, "Helvetica Neue", Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      text-align: center;
+    }
+
+    h1 { font-size: 1.8rem; margin-bottom: 12px; color: #fff; }
+    h2 { font-size: 1.4rem; margin: 24px 0 16px; color: #ddd; }
+    p { margin-bottom: 20px; color: #aaa; }
+    h3 { margin-top: 28px; color: #ccc; }
+
+    video {
+      max-width: 100%;
+      width: 480px;
+      border: 1px solid #333;
+      border-radius: 8px;
+      margin-top: 16px;
+    }
+
+    /* Форма входа для автора */
+    .auth-container {
+      margin-top: 32px;
+      background: var(--panel);
+      padding: 24px;
+      border-radius: 10px;
+      border: 1px solid #333;
+      width: 360px;
+    }
+    .form-group { margin-bottom: 14px; }
+    label { display: block; margin-bottom: 6px; font-size: 0.9rem; color: #aaa; }
+    input {
+      width: 100%;
+      padding: 10px;
+      background: var(--input-bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: white;
+      outline: none;
+    }
+    input:focus { border-color: var(--accent); }
+
+    button {
+      width: 100%;
+      padding: 12px;
+      background: transparent;
+      border: 1px solid var(--accent);
+      color: var(--accent);
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+    button:hover { background: var(--accent); color: var(--bg); }
+    button.success { color: var(--success); border-color: var(--success); }
+    button.success:hover { background: var(--success); color: var(--bg); }
+  </style>
+</head>
+<body>
+
+  <h1>Страницы были на время отключены автором. Function 263.</h1>
+
+  <div style="padding: 0 20px;">
+    <h2>Если вы автор или доверенное лицо — нажмите на кнопку «Я автор»</h2>
+    <p>Если вы не автор — дождитесь разблокировки!</p>
+  </div>
+
+  <h3>Смотри видео</h3>
+  <!-- Замени Video941.mp4 на свой путь, если нужно -->
+ <video id="VBM"src="video_987329.mp4" controls></video>
+ 
+  <!-- Блок входа (скрыт по умолчанию) -->
+  <div id="auth-block" class="auth-container" style="display:none;">
+    <h2 style="margin-bottom:16px;color:#fff;">Вход для автора</h2>
+    <div class="form-group">
+      <label>Почта</label>
+      <input type="email" id="inp-email" placeholder="admin@rcbaing.local" />
+    </div>
+    <div class="form-group">
+      <label>Пароль</label>
+      <input type="password" id="inp-password" placeholder="Пароль" />
+    </div>
+    <div class="form-group">
+      <label>Код подтверждения</label>
+      <input type="text" id="inp-code" maxlength="4" placeholder="XXXX" />
+    </div>
+    <button class="success" id="btn-auth">Войти</button>
+  </div>
+  
+  <button style="margin-top:32px;" onclick="window.location.href='Admin.html'">Я автор</button>
+
+  <script>
+    (function() {
+      'use strict';
+
+      const ADMIN = {
+        email: 'artplay26f@yandex.ru',
+        password: 'ea77926ae23f',
+        code: '2679'
+      };
+
+      // Переключение видимости формы
+      window.toggleAuth = function() {
+        const block = document.getElementById('auth-block');
+        block.style.display = block.style.display === 'none' ? 'block' : 'none';
+      };
+
+      document.getElementById('btn-auth').addEventListener('click', () => {
+        const email = document.getElementById('inp-email').value.trim();
+        const password = document.getElementById('inp-password').value.trim();
+        const code = document.getElementById('inp-code').value.trim();
+
+        if (email === ADMIN.email && password === ADMIN.password && code === ADMIN.code) {
+          // Успешный вход: перенаправляем обратно на нужную страницу
+          // Если это заглушка, можно просто убрать её и показать контент,
+          // но проще редирект на ту же страницу — тогда сработает проверка доступа.
+          
+          window.location.href = 'Admin.html';
+        } else {
+          alert('Неверный email/пароль/код');
+        }
+      });
+
+      // Сохраняем текущий путь, чтобы после входа вернуть на него
+      localStorage.setItem('rcbaing_original_path', window.location.pathname);
+    })();
+  </script>
+</body>
+</html>
+
+

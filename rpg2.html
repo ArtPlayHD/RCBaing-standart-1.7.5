@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <title>Новый этаж — RPG Constructor (SimplePy)</title>
+  <style>
+    :root {
+      --bg: #111114;
+      --panel: #1a1b26;
+      --text: #e0e0e4;
+      --blue: #00aaff;
+      --red: #ff4d4d;
+      --code-bg: #0f0f14;
+      --border: #2a2a35;
+      --danger: #3a1f2a;
+      --loot: #2b3a1f;
+    }
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: system-ui, Segoe UI, Roboto, Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      line-height: 1.6;
+    }
+
+    .top-bar {
+      padding: 1rem 2rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(0,0,0,0.5);
+    }
+    .logo {
+      font-weight: 700;
+      color: var(--blue);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+    .tag {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+    .tag.floor { background: #1a1a22; color: var(--blue); }
+    .tag.rpg { background: #1a1a22; color: #ffd43b; }
+
+    main {
+      max-width: 960px;
+      margin: 2rem auto;
+      padding: 0 1.5rem;
+    }
+
+    h1 { color: #fff; font-size: 2.4rem; margin-bottom: 0.3rem; }
+    h2 { color: var(--blue); margin-top: 2.5rem; border-left: 4px solid var(--blue); padding-left: 0.8rem; }
+    h3 { color: #ddd; margin-top: 1.8rem; }
+    p { color: #ccc; margin-bottom: 1rem; }
+
+    /* Карта этажа (сетка комнат) */
+    .map-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 1rem;
+      margin-top: 1.5rem;
+    }
+    .room-card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+      position: relative;
+    }
+    .room-title {
+      color: #fff;
+      font-weight: 700;
+      margin: 0 0 0.4rem 0;
+    }
+    .room-desc { color: #aaa; font-size: 0.9rem; }
+    .room-tags {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .room-tag {
+      padding: 3px 6px;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    .room-tag.loot { background: var(--loot); color: #0f1a08; }
+    .room-tag.enemy { background: var(--danger); color: #601f2f; }
+    .room-tag.exit { background: transparent; color: var(--blue); border: 1px solid var(--blue); }
+
+    /* Легенда */
+    .legend {
+      display: flex;
+      gap: 1rem;
+      margin: 1.5rem 0;
+      padding: 1rem;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+    }
+    .legend-item { display: flex; align-items: center; gap: 0.5rem; color: #ccc; }
+    .dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
+
+    /* Панель действий */
+    .actions-panel {
+      margin-top: 2rem;
+      padding: 1.5rem;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.7rem 1.2rem;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      font-size: 1rem;
+      transition: all 0.2s;
+    }
+    .btn-primary {
+      background: var(--blue);
+      color: #000;
+      font-weight: 700;
+    }
+    .btn-primary:hover {
+      background: #00ccff;
+      transform: translateY(-1px);
+    }
+    .btn-danger {
+      background: transparent;
+      color: var(--red);
+      border: 1px solid var(--red);
+    }
+    .btn-danger:hover {
+      background: var(--red);
+      color: #000;
+    }
+
+    pre {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.2rem;
+      overflow-x: auto;
+      margin: 1.2rem 0;
+    }
+    code {
+      font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+      color: #fff;
+    }
+
+    footer {
+      padding: 2rem;
+      border-top: 1px solid var(--border);
+      text-align: center;
+      color: #666;
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+
+  <header class="top-bar">
+    <div class="logo">RCBaing: Новый этаж</div>
+    <nav>
+      <span class="tag floor">Этаж</span>
+      <span class="tag rpg">RPG</span>
+    </nav>
+  </header>
+
+  <main>
+    <h1>Новый этаж: Подвал базы RCB</h1>
+    <p>
+      Карта этажа для RPG‑конструктора (SimplePy). Комнаты, лут, враги, выходы. Можно использовать как документацию/интерфейс к модулю <code>floor.py</code>.
+    </p>
+
+    <section>
+      <h2>Легенда карты</h2>
+      <div class="legend">
+        <div class="legend-item">
+          <div class="dot" style="background: var(--loot)"></div>
+          <span>🎒 Лут / Сундук</span>
+        </div>
+        <div class="legend-item">
+          <div class="dot" style="background: var(--danger)"></div>
+          <span>⚠️ Враг</span>
+        </div>
+        <div class="legend-item">
+          <div class="dot" style="background: var(--blue)"></div>
+          <span>🚪 Выход / Переход</span>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Карта этажа</h2>
+      <p>
+        Структура «Подвала базы RCB»: коридоры, склад, офис, аварийный выход. Подходит для «Уютного уголка», зомби‑апокалипсиса, Minecraft‑клона.
+      </p>
+      <div class="map-grid">
+        <!-- Комната: Главный коридор -->
+        <article class="room-card">
+          <h3 class="room-title">Главный коридор</h3>
+          <p class="room-desc">Длинный коридор с мигающими лампами. Отсюда можно пройти на склад и в офис.</p>
+          <div class="room-tags">
+            <span class="room-tag exit">север → Склад</span>
+            <span class="room-tag exit">восток → Офис</span>
+          </div>
+        </article>
+
+        <!-- Комната: Склад -->
+        <article class="room-card">
+          <h3 class="room-title">Склад</h3>
+          <p class="room-desc">Тесное помещение с ящиками. Здесь можно найти полезные предметы.</p>
+          <div class="room-tags">
+            <span class="room-tag loot">🎒 Сундук: 2 предмета</span>
+            <span class="room-tag enemy">⚠️ Враг: Зомби (15 HP)</span>
+          </div>
+        </article>
+
+        <!-- Комната: Офис -->
+        <article class="room-card">
+          <h3 class="room-title">Офис</h3>
+          <p class="room-desc">Старый офис с разбитым монитором. В столе могут быть документы и ключи.</p>
+          <div class="room-tags">
+            <span class="room-tag loot">🎒 Ящик: 1 предмет + ключ</span>
+          </div>
+        </article>
+
+        <!-- Комната: Аварийный выход -->
+        <article class="room-card">
+          <h3 class="room-title">Аварийный выход</h3>
+          <p class="room-desc">Тупик, но дверь приоткрыта. Отсюда можно выбраться на следующий уровень.</p>
+          <div class="room-tags">
+            <span class="room-tag exit">🚪 Переход: Этаж 2</span>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section>
+      <h2>Пример данных этажа для SimplePy</h2>
+      <p>
+        Этот JSON можно использовать как шаблон для генерации этажа в коде (вместо ручной расстановки комнат).
+      </p>
+      <pre>
+<code class="language-json">{
+  "floor_id": "floor_1",
+  "title": "Подвал базы RCB",
+  "rooms": [
+    {
+      "id": "hall",
+      "name": "Главный коридор",
+      "description": "Длинный коридор с мигающими лампами.",
+      "exits": {"север": "storage", "восток": "office"},
+      "loot": [],
+      "enemy": null
+    },
+    {
+      "id": "storage",
+      "name": "Склад",
+      "description": "Тесное помещение с ящиками.",
+      "exits": {"юг": "hall"},
+      "loot": [{"name": "бинт", "count": 2}, {"name": "патроны", "count": 10}],
+      "enemy": {"name": "Зомби", "hp": 15}
+    },
+    {
+      "id": "office",
+      "name": "Офис",
+      "description": "Старый офис с разбитым монитором.",
+      "exits": {"запад": "hall"},
+      "loot": [{"name": "ключ от выхода", "count": 1}],
+      "enemy": null
+    },
+    {
+      "id": "exit",
+      "name": "Аварийный выход",
+      "description": "Тупик, дверь приоткрыта.",
+      "exits": {},
+      "loot": [],
+      "enemy": null
+    }
+  ]
+}</code></pre>
+    </section>
+
+    <section>
+      <h2>Панель действий (для UI админки конструктора)</h2>
+      <div class="actions-panel">
+        <p>Инструменты для редактора этажей в админ‑панели RCBaing:</p>
+        <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+          <button class="btn btn-primary">
+            ➕ Добавить комнату
+          </button>
+          <button class="btn btn-primary">
+            🔗 Связать комнаты
+          </button>
+          <button class="btn btn-danger">
+            🗑️ Удалить комнату
+          </button>
+          <button class="btn btn-primary">
+            💾 Экспорт этажа (JSON)
+          </button>
+          <button class="btn btn-primary">
+            📥 Импорт этажа
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Как связать с Python‑модулем floor.py</h2>
+      <p>
+        Пример загрузки этажа из JSON и построения объектов <code>Room</code>/<code>Floor</code> в SimplePy:
+      </p>
+      <pre>
+<code class="language-python">import json
+from modules.floor import Floor, Room
+
+def load_floor_from_json(path: str) -> Floor:
+    with open(path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+
+    floor = Floor(data["floor_id"], data["title"])
+    room_map = {}
+
+    # Создаём комнаты
+    for r in data["rooms"]:
+        room = Room(r["id"], r["name"], r["description"])
+        room.exits = r.get("exits", {})
+        room.loot = r.get("loot", [])
+        room.enemy = r.get("enemy")
+        floor.add_room(room)
+        room_map[r["id"]] = room
+
+    return floor</code></pre>
+      <p>
+        Для админки (RCB‑Pad++ или админ‑панель на HTML+JS) можно отображать этот JSON в виде сетки карточек (как на странице выше), а при сохранении — отправлять обратно на сервер или в файл.
+      </p>
+    </section>
+  </main>
+
+  <footer>
+    Новый этаж для RPG‑конструктора (SimplePy) — документация и UI‑шаблон для RCBaing. Для проектов ArtPlayHD и Artelen. © 2026
+  </footer>
+
+</body>
+</html>

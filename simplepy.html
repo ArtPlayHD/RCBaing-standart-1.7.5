@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <title>SimplePy 2.0 — Документация</title>
+  <style>
+    :root {
+      --bg: #111114;
+      --panel: #1a1b26;
+      --text: #e0e0e4;
+      --blue: #00aaff;
+      --red: #ff4d4d;
+      --code-bg: #0f0f14;
+      --border: #2a2a35;
+      --accent: var(--red);
+    }
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: system-ui, Segoe UI, Roboto, Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      line-height: 1.6;
+    }
+
+    /* Навигация */
+    .top-bar {
+      padding: 1rem 2rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(0,0,0,0.5);
+    }
+    .logo {
+      font-weight: 700;
+      color: var(--blue);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+    .nav-links a {
+      color: #aaa;
+      margin-left: 1.2rem;
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+    .nav-links a:hover { color: var(--text); }
+
+    main {
+      max-width: 960px;
+      margin: 2rem auto;
+      padding: 0 1.5rem;
+    }
+
+    h1 { color: #fff; font-size: 2.4rem; margin-bottom: 0.3rem; }
+    h2 { color: var(--blue); margin-top: 2.5rem; border-left: 4px solid var(--blue); padding-left: 0.8rem; }
+    h3 { color: #ddd; margin-top: 1.8rem; }
+    p { color: #ccc; margin-bottom: 1rem; }
+
+    /* Блоки кода */
+    pre {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.2rem;
+      overflow-x: auto;
+      margin: 1.2rem 0;
+    }
+    code {
+      font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+      color: #fff;
+    }
+    .lang-badge {
+      position: absolute;
+      right: 12px;
+      top: 10px;
+      font-size: 0.75rem;
+      background: #222;
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: #888;
+    }
+
+    /* Таблицы */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1.5rem 0;
+      background: var(--panel);
+      border: 1px solid var(--border);
+    }
+    th, td {
+      padding: 0.8rem 1rem;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+    th { background: #24273a; color: var(--blue); }
+    tr:hover { background: rgba(255,255,255,0.03); }
+
+    /* Карточки модулей */
+    .modules-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 1rem;
+      margin-top: 1.5rem;
+    }
+    .mod-card {
+      background: var(--panel);
+      padding: 1.2rem;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+    }
+    .mod-title {
+      color: var(--blue);
+      font-weight: 700;
+      margin: 0 0 0.4rem 0;
+    }
+    .mod-desc { color: #aaa; font-size: 0.9rem; }
+
+    /* Кнопки */
+    .btn-copy {
+      position: absolute;
+      right: 1rem;
+      top: 1rem;
+      background: transparent;
+      border: 1px solid var(--border);
+      color: #888;
+      padding: 0.4rem 0.8rem;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      transition: all 0.2s;
+    }
+    .btn-copy:hover {
+      border-color: var(--blue);
+      color: var(--blue);
+    }
+
+    footer {
+      padding: 2rem;
+      border-top: 1px solid var(--border);
+      text-align: center;
+      color: #666;
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+
+  <header class="top-bar">
+    <div class="logo">SimplePy 2.0</div>
+    <nav class="nav-links">
+      <a href="index.html">Главная</a>
+      <a href="search.html">Поиск</a>
+      <a href="floor2.html">Этаж 2</a>
+    </nav>
+  </header>
+
+  <main>
+    <h1>Документация SimplePy 2.0</h1>
+    <p>
+      SimplePy — набор утилит и вспомогательных функций для быстрой разработки на Python (Tkinter, Pygame, Ursina, скрипты, админки). 
+      Версия 2.0 добавляет модульность, улучшенную обработку ошибок и совместимость с Python 3.13.
+    </p>
+
+    <section>
+      <h2>Установка и подключение</h2>
+      <p>
+        Если у тебя уже есть папка <code>simplepy</code> рядом с проектом, просто импортируй модули:
+      </p>
+      <pre><code class="language-python">from simplepy import easyprint
+from simplepy.utils import save_json, load_json
+from simplepy.gui import make_window</code></pre>
+      <p>
+        Для установки через pip (если есть публичный релиз):
+      </p>
+      <pre><code class="language-bash">pip install simplepy2</code></pre>
+      <p>
+        Или вручную: скопируй папку <code>simplepy</code> в корень проекта.
+      </p>
+    </section>
+
+    <section>
+      <h2>Основные модули</h2>
+      <div class="modules-grid">
+        <article class="mod-card">
+          <h3 class="mod-title">easyprint</h3>
+          <p class="mod-desc">Улучшенный вывод в консоль: цветной текст, логирование, форматирование без лишних зависимостей.</p>
+        </article>
+        <article class="mod-card">
+          <h3 class="mod-title">utils</h3>
+          <p class="mod-desc">Утилиты: работа с JSON, файлами, путями, таймерами, базовыми валидациями.</p>
+        </article>
+        <article class="mod-card">
+          <h3 class="mod-title">gui</h3>
+          <p class="mod-desc">Быстрые обертки для Tkinter: создание окон, кнопок, меток, простых форм.</p>
+        </article>
+        <article class="mod-card">
+          <h3 class="mod-title">game</h3>
+          <p class="mod-desc">Вспомогательные функции для Pygame/Ursina: коллизии, таймеры, управление камерой.</p>
+        </article>
+      </div>
+    </section>
+
+    <section>
+      <h2>easyprint — цветной и удобный вывод</h2>
+      <p>
+        Вместо <code>print()</code> используй <code>easyprint.log()</code>, <code>easyprint.info()</code>, <code>easyprint.error()</code>.
+      </p>
+      <pre>
+<span class="lang-badge">Python</span>
+<code class="language-python">import simplepy.easyprint as ep
+
+ep.info("Загрузка системы...")
+ep.success("Админ-панель готова")
+ep.warning("Внимание: низкий уровень энергии")
+ep.error("Ошибка соединения с сервером")
+ep.debug("Отладочная информация: x=12, y=34")</code></pre>
+      <button class="btn-copy" onclick="copyBlock(this)">Копировать</button>
+      <p>
+        Цвета работают в большинстве терминалов, включая Windows CMD/PowerShell и VS Code.
+      </p>
+    </section>
+
+    <section>
+      <h2>utils — работа с данными и файлами</h2>
+      <p>
+        Сохранение и загрузка JSON без лишней возни:
+      </p>
+      <pre>
+<span class="lang-badge">Python</span>
+<code class="language-python">from simplepy.utils import save_json, load_json
+
+data = {"player": "Artelen", "score": 1230, "level": 4}
+save_json("player_data.json", data)
+
+loaded = load_json("player_data.json")
+if loaded:
+    print("Загружено:", loaded)</code></pre>
+      <button class="btn-copy" onclick="copyBlock(this)">Копировать</button>
+    </section>
+
+    <section>
+      <h2>gui — быстрое окно на Tkinter</h2>
+      <p>
+        Создай окно за 3 строки:
+      </p>
+      <pre>
+<span class="lang-badge">Python</span>
+<code class="language-python">from simplepy.gui import make_window, add_button
+
+root = make_window(title="RCB Admin", size=(400, 300), bg="#1a1a1a")
+add_button(root, "Запустить сервер", lambda: print("Сервер запущен"))
+root.mainloop()</code></pre>
+      <button class="btn-copy" onclick="copyBlock(this)">Копировать</button>
+    </section>
+
+    <section>
+      <h2>game — утилиты для игр</h2>
+      <p>
+        Пример простой проверки коллизии прямоугольников:
+      </p>
+      <pre>
+<span class="lang-badge">Python</span>
+<code class="language-python">from simplepy.game import rect_collide
+
+# (x, y, width, height)
+player = (100, 100, 32, 32)
+enemy = (120, 90, 40, 40)
+
+if rect_collide(player, enemy):
+    print("Столкновение!")</code></pre>
+      <button class="btn-copy" onclick="copyBlock(this)">Копировать</button>
+    </section>
+
+    <section>
+      <h2>Совместимость и версии</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Компонент</th>
+            <th>Python</th>
+            <th>ОС</th>
+            <th>Примечание</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>easyprint</td>
+            <td>3.8–3.13</td>
+            <td>Windows/Linux/macOS</td>
+            <td>Цвета в терминале</td>
+          </tr>
+          <tr>
+            <td>utils</td>
+            <td>3.8–3.13</td>
+            <td>Все</td>
+            <td>Без внешних зависимостей</td>
+          </tr>
+          <tr>
+            <td>gui (Tkinter)</td>
+            <td>3.8–3.13</td>
+            <td>Все (с Tk)</td>
+            <td>Требуется установленный Tk</td>
+          </tr>
+          <tr>
+            <td>game (Pygame/Ursina)</td>
+            <td>3.8–3.13</td>
+            <td>Все</td>
+            <td>Зависит от движка</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Частые вопросы</h2>
+      <h3>Можно ли использовать SimplePy в проектах на Ursina?</h3>
+      <p>Да. Импортируй нужные модули и используй утилиты (таймеры, коллизии, сохранение) вместе с объектами Ursina.</p>
+
+      <h3>А если у меня нет Tkinter?</h3>
+      <p>Модуль <code>gui</code> не обязателен. Остальные модули работают без него. На Windows Tk обычно уже установлен вместе с Python.</p>
+
+      <h3>Как добавить свой модуль в SimplePy?</h3>
+      <p>Создай файл в папке <code>simplepy/</code>, например <code>my_utils.py</code>, и импортируй его как <code>from simplepy import my_utils</code>.</p>
+    </section>
+  </main>
+
+  <footer>
+    SimplePy 2.0 — документация для RCBaing. Для проектов ArtPlayHD и Artelen. © 2026
+  </footer>
+
+  <script>
+    function copyBlock(btn) {
+      const code = btn.parentElement.querySelector('code').textContent;
+      navigator.clipboard.writeText(code).then(() => {
+        const originalText = btn.innerText;
+        btn.innerText = 'Скопировано';
+        setTimeout(() => btn.innerText = originalText, 2000);
+      });
+    }
+  </script>
+</body>
+</html>

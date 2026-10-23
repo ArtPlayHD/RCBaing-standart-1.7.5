@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>RCB-Pad++ | Редактор модов</title>
+
+  <style>
+    :root {
+      --bg: #0f1115;
+      --panel: rgba(255, 255, 255, 0.06);
+      --border: rgba(255, 255, 255, 0.12);
+      --accent: #ff6b81;
+      --text: #ffffff;
+      --muted: #a0a0b0;
+      --glass: rgba(255, 255, 255, 0.08);
+      --line-num-bg: rgba(0, 0, 0, 0.3);
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, monospace;
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header.top-bar {
+      padding: 12px 20px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(15, 17, 21, 0.8);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+    }
+
+    .toolbar-group button {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 6px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      transition: all 0.2s;
+    }
+    .toolbar-group button:hover:not(:disabled) {
+      background: var(--glass);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+    .toolbar-group button.primary {
+      background: var(--accent);
+      color: #000;
+      border: none;
+      font-weight: 600;
+    }
+    .toolbar-group button.primary:hover {
+      filter: brightness(0.9);
+    }
+
+    .workspace {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+      max-height: calc(100vh - 64px);
+    }
+
+    aside.file-sidebar {
+      width: 240px;
+      background: var(--panel);
+      border-right: 1px solid var(--border);
+      padding: 16px;
+      overflow-y: auto;
+    }
+    .file-item {
+      padding: 8px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      color: var(--text);
+      transition: background 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .file-item:hover { background: var(--glass); }
+    .file-item.active { background: rgba(255,107,129,0.15); border: 1px solid rgba(255,107,129,0.3); }
+    .icon-file { width: 18px; height: 18px; background: var(--muted); border-radius: 4px; }
+
+    main.editor-area {
+      flex: 1;
+      position: relative;
+      background: #0b0d10;
+      overflow: auto;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .editor-header {
+      padding: 10px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+    .editor-header strong { color: var(--text); }
+
+    pre.code-view {
+      margin: 0;
+      padding: 20px;
+      overflow: auto;
+      flex: 1;
+      white-space: pre-wrap;
+      line-height: 1.5;
+      tab-size: 4;
+      user-select: text;
+    }
+    code.token-keyword { color: #c5a05a; font-weight: bold; }
+    code.token-string { color: #56f1ef; }
+    code.token-number { color: #ff9f43; }
+    code.token-comment { color: #555; font-style: italic; }
+    code.token-function { color: #ffa347; }
+    code.token-class { color: #a6d2ff; }
+
+    footer.status-bar {
+      padding: 4px 16px;
+      background: rgba(0,0,0,0.4);
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+
+    #saveModal {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.7);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+    .modal-content {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      padding: 24px;
+      border-radius: 12px;
+      text-align: center;
+      width: 360px;
+    }
+    .modal-input {
+      width: 100%;
+      padding: 10px;
+      background: rgba(0,0,0,0.3);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: white;
+      margin: 12px 0;
+      box-sizing: border-box;
+    }
+    .modal-btn {
+      background: var(--accent);
+      color: #000;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 6px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+  <header class="top-bar">
+    <div class="brand">
+      <strong>RCB-Pad++</strong> <span style="color:var(--muted)">| Редактор модов</span>
+    </div>
+    <div class="toolbar-group">
+      <button onclick="createNewFile()">+ Файл</button>
+      <button class="primary" onclick="saveCurrentFile()">Сохранить</button>
+      <button onclick="downloadFile('py')">Скачать .py</button>
+      <button onclick="downloadFile('bat')">Скачать .bat</button>
+    </div>
+  </header>
+
+  <div class="workspace">
+    <aside class="file-sidebar">
+      <h4 style="margin:0 0 12px; color:var(--text)">Файлы проекта</h4>
+      <div id="fileList">
+        <!-- Сюда JS добавит файлы -->
+      </div>
+    </aside>
+
+    <main class="editor-area">
+      <div class="editor-header">
+        <span>Файл: <strong id="currentFileName">Нет файла</strong></span>
+        <span style="margin-left: auto;">Язык: Python / Mod Script</span>
+      </div>
+
+      <!-- Редактирование: contenteditable вместо textarea — удобнее для кода -->
+      <pre class="code-view" id="codeView" contenteditable="true" spellcheck="false" oninput="updateStats(); highlightCode()">
+<code id="codeContent">
+# RCB-Mod: Пример скрипта для Minecraft-RCBaing
+# Авто-генерация структуры и спавн сущностей
+
+def generate_structure(x, y, z):
+    # Создаем основу
+    set_block(x, y, z, "minecraft:stone")
+    set_block(x+1, y, z, "minecraft:iron_block")
+
+    # Спавн мобов
+    spawn_entity("minecraft:zombie", x, y+1, z)
+    print("Структура построена!")
+
+# Основная логика мода
+if __name__ == "__main__":
+    generate_structure(10, 64, 10)
+</code>
+      </pre>
+    </main>
+  </div>
+
+  <footer class="status-bar">
+    <span id="statusLine">Готов к работе</span>
+    <span>Строка: <span id="lineCount">13</span> | Символы: <span id="charCount">498</span></span>
+  </footer>
+
+  <!-- Модальное окно сохранения -->
+  <div id="saveModal">
+    <div class="modal-content">
+      <h3>Сохранить файл</h3>
+      <input type="text" id="saveFileName" class="modal-input" placeholder="Имя файла (например, mod_01.py)" />
+      <button class="modal-btn" onclick="confirmSave()">Сохранить</button>
+      <div style="margin-top:12px; font-size:0.8rem; color:var(--muted);">
+        Файлы хранятся в localStorage браузера.
+      </div>
+    </div>
+  </div>
+
+<script>
+  const files = JSON.parse(localStorage.getItem('rcb_pad_files')) || {};
+  let currentFile = null;
+
+  function renderFiles() {
+    const list = document.getElementById('fileList');
+    list.innerHTML = '';
+    if (Object.keys(files).length === 0) {
+      list.innerHTML = '<p style="color:var(--muted)">Нет файлов</p>';
+      return;
+    }
+    Object.keys(files).forEach(name => {
+      const div = document.createElement('div');
+      div.className = 'file-item' + (name === currentFile ? ' active' : '');
+      div.innerHTML = `<span class="icon-file"></span> ${name}`;
+      div.onclick = () => openFile(name);
+      list.appendChild(div);
+    });
+  }
+
+  function openFile(name) {
+    currentFile = name;
+    document.getElementById('currentFileName').textContent = name;
+    const codeEl = document.getElementById('codeContent');
+    codeEl.textContent = files[name];
+    highlightCode();
+    updateStats();
+    renderFiles();
+    document.getElementById('statusLine').textContent = 'Открыт: ' + name;
+  }
+
+  function createNewFile() {
+    const name = 'mod_' + Date.now() + '.py';
+    files[name] = '# Новый мод RCBaing\nprint("Hello, RCB!")';
+    localStorage.setItem('rcb_pad_files', JSON.stringify(files));
+    openFile(name);
+  }
+
+  function saveCurrentFile() {
+    if (!currentFile) {
+      alert('Сначала создайте или откройте файл.');
+      return;
+    }
+    const content = document.getElementById('codeContent').textContent;
+    files[currentFile] = content;
+    localStorage.setItem('rcb_pad_files', JSON.stringify(files));
+    document.getElementById('statusLine').textContent = 'Сохранено: ' + currentFile;
+  }
+
+  function confirmSave() {
+    const nameInput = document.getElementById('saveFileName');
+    const name = nameInput.value.trim();
+    if (!name) return;
+    // Чтобы не было дублей, можно добавить .py, если нет расширения
+    const finalName = name.endsWith('.py') ? name : name + '.py';
+
+    const content = document.getElementById('codeContent').textContent;
+    files[finalName] = content;
+    localStorage.setItem('rcb_pad_files', JSON.stringify(files));
+    closeModal();
+    openFile(finalName);
+    document.getElementById('statusLine').textContent = 'Создан новый файл: ' + finalName;
+  }
+
+  // Скачивание
+  function downloadFile(type) {
+    if (!currentFile && Object.keys(files).length === 0) {
+      alert('Нет файла для скачивания.');
+      return;
+    }
+    let content = '';
+    let filename = '';
+
+    if (currentFile) {
+      content = files[currentFile];
+      filename = currentFile.replace(/\.py$/, '');
+    } else {
+      // Если файл не открыт, но есть в хранилище — берем первый
+      const firstKey = Object.keys(files)[0];
+      content = files[firstKey];
+      filename = firstKey.replace(/\.py$/, '');
+    }
+
+    if (type === 'py') {
+      downloadText(content, filename + '.py', 'text/plain');
+      document.getElementById('statusLine').textContent = 'Скачан .py';
+    } else if (type === 'bat') {
+      // Генерируем BAT-установщик на основе текущего кода
+      const batContent = `@echo off
+chcp 65001 >nul
+echo Запуск мода RCB...
+python ${filename}.py
+if errorlevel 1 (
+  echo Ошибка запуска!
+  pause
+) else (
+  echo Мод успешно запущен.
+)
+pause
+`;
+      downloadText(batContent, 'install_mod.bat', 'text/plain');
+      document.getElementById('statusLine').textContent = 'Скачан install_mod.bat';
+    }
+  }
+
+  function downloadText(text, filename, mimeType) {
+    const blob = new Blob([text], {type: mimeType});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function closeModal() {
+    document.getElementById('saveModal').style.display = 'none';
+  }
+
+  function updateStats() {
+    const text = document.getElementById('codeContent').textContent;
+    const lines = text.split('\n').length;
+    const chars = text.length;
+    document.getElementById('lineCount').textContent = lines;
+    document.getElementById('charCount').textContent = chars;
+  }
+
+  // Подсветка синтаксиса
+  function highlightCode() {
+    const code = document.getElementById('codeContent');
+    let text = code.textContent;
+
+    // Ключевые слова
+    text = text.replace(/\b(def|if|else|return|for|while|import|from|class|try|except|with|as|lambda|yield)\b/g, '<code class="token-keyword">$1</code>');
+    // Строки
+    text = text.replace(/"([^"]*)"/g, '<code class="token-string">"$1"</code>');
+    // Комментарии
+    text = text.replace(/(#.*)/g, '<code class="token-comment">$1</code>');
+    // Числа
+    text = text.replace(/\b(\d+)\b/g, '<code class="token-number">$1</code>');
+    // Функции (простая эвристика: слово + скобки)
+    text = text.replace(/([a-zA-Z_][a-zA-Z0-9_]*)\(/g, '<code class="token-function">$1</code>(');
+
+    code.innerHTML = text;
+  }
+
+  renderFiles();
+  updateStats();
+  highlightCode();
+</script>
+</body>
+</html>
