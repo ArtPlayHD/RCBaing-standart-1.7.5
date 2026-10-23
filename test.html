@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <title>Библиотека‑заготовка (без книг)</title>
+  </head>
+  <body>
+    <div id="app"></div>
+
+    <script>
+      // --- 1. Стили через JS (никакого отдельного CSS) ---
+      const styleSheet = document.createElement('style');
+      styleSheet.textContent = `
+        :root {
+          --bg: #f3f4f6;
+          --card: #ffffff;
+          --primary: #2563eb;
+          --danger: #dc2626;
+          --success: #16a34a;
+          --text: #1f2937;
+          --shadow: 0 1px 3px rgba(0,0,0,0.1), 0 2px 4px rgba(0,0,0,0.05);
+          --font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+        }
+        body {
+          font-family: var(--font-family);
+          background: var(--bg);
+          color: var(--text);
+          margin: 0;
+          padding: 1.5rem;
+        }
+        #app { max-width: 800px; margin: 0 auto; }
+        h1, h2 { margin: 0 0 0.5rem 0; }
+        .container {
+          background: var(--card);
+          padding: 1.5rem;
+          border-radius: 12px;
+          box-shadow: var(--shadow);
+        }
+        .grid-2 {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 1rem;
+        }
+        @media (max-width: 600px) { .grid-2 { grid-template-columns: 1fr; } }
+        .list {
+          list-style: none;
+          padding: 0;
+          margin: 0;
+        }
+        .item {
+          background: #f9fafb;
+          border: 1px solid #e5e7eb;
+          padding: 0.75rem;
+          border-radius: 8px;
+          margin-bottom: 0.5rem;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        }
+        .meta { flex: 1; }
+        .status-badge {
+          padding: 0.25rem 0.5rem;
+          border-radius: 4px;
+          font-size: 0.85rem;
+          font-weight: 600;
+        }
+        .status-ok { background: var(--success); color: white; }
+        .status-warn { background: #f59e0b; color: white; }
+        .actions button {
+          padding: 0.5rem 1rem;
+          border: none;
+          border-radius: 6px;
+          cursor: pointer;
+          font-weight: 500;
+          transition: transform 0.1s, box-shadow 0.15s;
+        }
+        .actions button:active { transform: scale(0.98); }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-outline {
+          background: transparent;
+          border: 1px solid #d1d5db;
+          color: var(--text);
+        }
+        /* Модальное окно */
+        #modal-overlay {
+          position: fixed;
+          inset: 0;
+          background: rgba(0, 0, 0, 0.5);
+          display: none;
+          justify-content: center;
+          align-items: center;
+          z-index: 1000;
+          backdrop-filter: blur(2px);
+        }
+        #modal {
+          background: white;
+          padding: 1.5rem 2rem;
+          border-radius: 12px;
+          min-width: 320px;
+          max-width: 500px;
+          box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+          animation: popIn 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        @keyframes popIn {
+          from { transform: scale(0.95); opacity: 0; }
+          to { transform: scale(1); opacity: 1; }
+        }
+        #modal h2 { margin-top: 0; }
+        #modal input {
+          width: 100%;
+          padding: 0.6rem;
+          border: 1px solid #d1d5db;
+          border-radius: 6px;
+          margin: 1rem 0;
+          box-sizing: border-box;
+        }
+        #modal .modal-actions {
+          display: flex;
+          justify-content: flex-end;
+          gap: 0.75rem;
+        }
+      `;
+      document.head.appendChild(styleSheet);
+
+      // --- 2. Каркас HTML (через JS) ---
+      document.getElementById('app').innerHTML = `
+        <h1>📦 Библиотека‑заготовка</h1>
+        <div class="container">
+          <div class="grid-2">
+            <div>
+              <h2>Список элементов</h2>
+              <ul class="list" id="list"></ul>
+            </div>
+            <div>
+              <h2>Действия</h2>
+              <div class="actions">
+                <button class="btn-primary" id="btn-add">Добавить элемент</button>
+                <button class="btn-outline" id="btn-edit">Изменить статус</button>
+                <button class="btn-danger" id="btn-delete">Удалить элемент</button>
+              </div>
+              <p style="margin-top:1rem; font-size:0.9rem; color:#6b7280;">
+                Зелёный — активен, жёлтый — требует внимания.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Модальное окно -->
+        <div id="modal-overlay">
+          <div id="modal">
+            <h2 id="modal-title">Заголовок</h2>
+            <p id="modal-message">Сообщение</p>
+            <input type="text" id="modal-input" placeholder="Введите значение..." style="display:none" />
+            <div class="modal-actions">
+              <button class="btn-outline" id="modal-cancel">Отмена</button>
+              <button class="btn-primary" id="modal-confirm">OK</button>
+            </div>
+          </div>
+        </div>
+      `;
+
+      // --- 3. Кастомные диалоги (Dialog) ---
+      const Dialog = {
+        _resolve: null,
+        show(title, message, type = 'alert', defaultValue = '') {
+          const overlay = document.getElementById('modal-overlay');
+          const modal = document.getElementById('modal');
+          const tTitle = document.getElementById('modal-title');
+          const tMsg = document.getElementById('modal-message');
+          const inp = document.getElementById('modal-input');
+          const btnCancel = document.getElementById('modal-cancel');
+          const btnConfirm = document.getElementById('modal-confirm');
+
+          tTitle.textContent = title;
+          tMsg.textContent = message;
+          inp.style.display = type === 'prompt' ? 'block' : 'none';
+          if (type === 'prompt') inp.value = defaultValue || '';
+
+          overlay.style.display = 'flex';
+
+          return new Promise((resolve) => {
+            this._resolve = resolve;
+
+            btnConfirm.onclick = () => {
+              if (type === 'prompt') resolve(inp.value);
+              else resolve(true);
+              overlay.style.display = 'none';
+            };
+
+            btnCancel.onclick = () => {
+              resolve(type === 'prompt' ? null : false);
+              overlay.style.display = 'none';
+            };
+          });
+        },
+        alert: (msg, title = 'Внимание') => this.show(title, msg, 'alert'),
+        confirm: (msg, title = 'Подтверждение') => this.show(title, msg, 'confirm'),
+        prompt: (msg, def = '', title = 'Ввод') => this.show(title, msg, 'prompt', def),
+      };
+
+      // --- 4. Данные (пустой массив — никаких книг по умолчанию) ---
+      let items = [];
+      const listEl = document.getElementById('list');
+
+      function renderItems() {
+        listEl.innerHTML = '';
+        if (items.length === 0) {
+          listEl.innerHTML = '<li style="padding:1rem; color:#9ca3af;">Список пуст. Добавьте первый элемент.</li>';
+          return;
+        }
+
+        items.forEach((item) => {
+          const li = document.createElement('li');
+          li.className = 'item';
+          li.innerHTML = `
+            <span class="meta">
+              <strong>${item.name}</strong><br/>
+              <small>${item.description || ''}</small>
+            </span>
+            <span>
+              <span class="status-badge ${item.status === 'active' ? 'status-ok' : 'status-warn'}">
+                ${item.status === 'active' ? 'Активен' : 'Требует внимания'}
+              </span>
+            </span>
+          `;
+          listEl.appendChild(li);
+        });
+      }
+
+      renderItems();
+
+      // --- 5. Обработчики кнопок (универсальная логика) ---
+
+      // Добавить элемент
+      document.getElementById('btn-add').addEventListener('click', async () => {
+        const name = await Dialog.prompt('Название элемента:', '', 'Новый элемент');
+        if (!name || name.trim() === '') return;
+
+        const description = await Dialog.prompt('Описание (необязательно):', '', 'Описание');
+        const status = await Dialog.confirm(
+          'Установить статус «Активен»? Если нет — будет «Требует внимания».',
+          'Статус элемента'
+        )
+          ? 'active'
+          : 'warn';
+
+        items.push({
+          id: Date.now(),
+          name: name.trim(),
+          description: description.trim() || undefined,
+          status,
+        });
+        renderItems();
+        await Dialog.alert(`Элемент "${name}" добавлен.`);
+      });
+
+      // Изменить статус
+      document.getElementById('btn-edit').addEventListener('click', async () => {
+        if (items.length === 0) {
+          await Dialog.alert('Сначала добавьте хотя бы один элемент.');
+          return;
+        }
+
+        const ids = items.map((i) => `${i.id}. ${i.name}`).join('\n');
+        const input = await Dialog.prompt(
+          `Введите ID элемента для смены статуса:\n${ids}`,
+          '',
+          'Смена статуса'
+        );
+        if (!input) return;
+
+        const id = Number(input.trim());
+        const item = items.find((i) => i.id === id);
+        if (!item) {
+          await Dialog.alert('Элемент с таким ID не найден.');
+          return;
+        }
+
+        const newStatus = await Dialog.confirm(
+          `Установить статус «Активен» для "${item.name}"?`,
+          'Выбор статуса'
+        )
+          ? 'active'
+          : 'warn';
+
+        item.status = newStatus;
+        renderItems();
+        await Dialog.alert(
+          `Статус элемента "${item.name}" изменён на ${newStatus === 'active' ? '«Активен»' : '«Требует внимания»'}.`
+        );
+      });
+
+      // Удалить элемент
+      document.getElementById('btn-delete').addEventListener('click', async () => {
+        if (items.length === 0) {
+          await Dialog.alert('Список пуст, нечего удалять.');
+          return;
+        }
+
+        const ids = items.map((i) => `${i.id}. ${i.name}`).join('\n');
+        const input = await Dialog.prompt(
+          `Введите ID элемента для удаления:\n${ids}`,
+          '',
+          'Удаление элемента'
+        );
+        if (!input) return;
+
+        const id = Number(input.trim());
+        const idx = items.findIndex((i) => i.id === id);
+        if (idx === -1) {
+          await Dialog.alert('Элемент не найден.');
+          return;
+        }
+
+        const confirmed = await Dialog.confirm(
+          `Вы действительно хотите удалить элемент "${items[idx].name}"? Это действие необратимо.`
+        );
+        if (!confirmed) return;
+
+        items.splice(idx, 1);
+        renderItems();
+        await Dialog.alert('Элемент удалён.');
+      });
+    </script>
+  </body>
+</html>
